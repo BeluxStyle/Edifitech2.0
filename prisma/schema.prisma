@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+id String @id @default(cuid())
+name String?
+email String @unique
+emailVerified DateTime?
+password String?
+image String?
+accounts Account[]
+sessions Session[]
+role Rol @relation(fields: [roleId], references: [id])
+userSubscriptions UserSubscription[]
+company Company? @relation("CompanyUsers", fields: [companyId], references: [id])
+ownedCompanies Company[] @relation("CompanyOwner")
+roleId String
+companyId String? // 🔹 Puede ser opcional si el usuario no siempre pertenece a una empresa
+createdAt DateTime @default(now())
+lastLogin DateTime?
+isOnline Boolean @default(false)
+comments Comment[]
+reactions Reaction[]
+}
+model UserSubscription {
+id String @id @default(cuid())
+userId String
+subscriptionId String
+startDate DateTime
+endDate DateTime
+status String
+autoRenew Boolean
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+model Subscription {
+id String @id @default(cuid())
+name String @unique
+price Int
+duration Int
+isTrial Boolean
+isLifetime Boolean
+userSubscriptions UserSubscription[]
+companySubscriptions CompanySubscription[] // 👈 Agregar esta relación
+}
+model Account {
+id String @id @default(cuid())
+userId String
+type String
+provider String
+providerAccountId String
+refresh_token String? @db.Text
+access_token String? @db.Text
+expires_at Int?
+token_type String?
+scope String?
+id_token String? @db.Text
+session_state String?
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+@@unique([provider, providerAccountId])
+}
+model Session {
+id String @id @default(cuid())
+sessionToken String @unique
+userId String
+expires DateTime
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model Rol {
+id String @id @default(cuid())
+name String @unique
+users User[] // Un rol puede ser asignado a múltiples usuarios
+level Int @default(0)
+}
+model Company {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  type        CompanyType // "administrador", "instalador", "proveedor"
+  cif         String    @unique
+  address     String
+  phone       String
+  owner       User?     @relation("CompanyOwner", fields: [ownerId], references: [id])
+  ownerId     String?
+  users       User[]    @relation("CompanyUsers")
+  comunidades Comunidad[] @relation("EdificioAdminCompany")
+  edificios   Edificio[] @relation("EdificioAdminCompany")
+  instalaciones Instalacion[] @relation("InstalacionInstallerCompany")
+  companySubscriptions CompanySubscription[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum CompanyType {
+  ADMINISTRADOR
+  INSTALADOR
+  PROVEEDOR
+}
+
+model Comunidad {
+  id        String    @id @default(cuid())
+  name      String
+  direccion String
+  cp        String
+  adminCompany  Company?  @relation("EdificioAdminCompany", fields: [adminCompanyId], references: [id])
+  adminCompanyId String?
+  edificios Edificio[]
+  contactos Contacto[] @relation("ContactoComunidad")
+  instalaciones Instalacion[] @relation("InstalacionComunidad")
+  comments Comment[] @relation("ComentarioComunidad")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Edificio {
+  id         String       @id @default(cuid())
+  name       String
+  direccion   String
+  cp         String?
+  adminCompany  Company?  @relation("EdificioAdminCompany", fields: [adminCompanyId], references: [id])
+  adminCompanyId String?
+  comunidad  Comunidad?   @relation(fields: [comunidadId], references: [id])
+  comunidadId String?
+  comments Comment[] @relation("ComentarioEdificio")
+  instalaciones Instalacion[] @relation("InstalacionEdificio")
+  contactos Contacto[] @relation("ContactoEdificio")
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+}
+
+model Contacto {
+  id      String      @id @default(cuid())
+  name    String
+  phone   String?
+  location    String?
+  type    String? @default("Vecino")
+  comunidad Comunidad? @relation("ContactoComunidad", fields: [comunidadId], references: [id])
+  comunidadId String?
+  edificio  Edificio?  @relation("ContactoEdificio", fields: [edificioId], references: [id])
+  edificioId  String?
+}
+
+model Instalacion {
+  id         String    @id @default(cuid())
+  tipo       String
+  category   Category?  @relation("CategoryInstalacion", fields: [categoryId], references: [id])
+  categoryId  String?
+  descripcion String
+  installerCompany Company? @relation("InstalacionInstallerCompany", fields: [installerCompanyId], references: [id])
+  installerCompanyId String?
+  edificio   Edificio? @relation("InstalacionEdificio", fields: [edificioId], references: [id])
+  edificioId String?
+  comunidad  Comunidad? @relation("InstalacionComunidad", fields: [comunidadId], references: [id])
+  comunidadId String?
+  elementos  Elemento[] @relation("ElementoInstalacion")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Elemento {
+  id           String       @id @default(cuid())
+  producto     Producto?    @relation("ElementoProducto", fields: [productoId], references: [id])
+  productoId   String?
+  instalacion  Instalacion? @relation("ElementoInstalacion", fields: [instalacionId], references: [id])
+  instalacionId String?
+  estado       String       @default("ok")
+  cantidad     Int          @default(1)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Producto {
+  id          String    @id @default(cuid())
+  ref        String
+  ean         String
+  price         Decimal
+  descripcion String
+  elementos   Elemento[] @relation("ElementoProducto")
+  brand     Brand?  @relation("BrandProducts", fields: [brandId], references: [id])
+  subcategory     Subcategory?  @relation("SubcategoryProducts", fields: [subcategoryId], references: [id])
+  image       Image?  @relation("ImageProducts", fields: [imageId], references: [id])
+  manuals    Manual[]  @relation("ManualsProducts")
+  imageId     String?
+  subcategoryId   String?
+  brandId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  productos    Producto[] @relation("BrandProducts")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  instalaciones Instalacion[] @relation("CategoryInstalacion")
+  subcategorias Subcategory[] @relation("CategorySub")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Subcategory {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  categoria   Category      @relation("CategorySub", fields: [categoriaId], references: [id])
+  categoriaId String
+  productos    Producto[] @relation("SubcategoryProducts")
+}
+
+model Image {
+  id          String    @id @default(cuid())
+  url         String    @unique
+  productos    Producto[] @relation("ImageProducts")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  url         String    @unique
+  manuals     Manual[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Manual {
+  id          String    @id @default(cuid())
+  documento   Document? @relation(fields: [documentoId], references: [id])
+  documentoId String?
+  productos    Producto[] @relation("ManualsProducts")
+  name        String
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model CompanySubscription {
+id String @id @default(cuid())
+companyId String
+subscriptionId String
+startDate DateTime
+endDate DateTime
+status String
+autoRenew Boolean
+company Company @relation(fields: [companyId], references: [id])
+subscription Subscription @relation(fields: [subscriptionId], references: [id])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  author      User     @relation(fields: [authorId], references: [id])
+  authorId    String
+  comunidad   Comunidad? @relation("ComentarioComunidad", fields: [comunidadId], references: [id])
+  comunidadId String?
+  edificio    Edificio? @relation("ComentarioEdificio", fields: [edificioId], references: [id])
+  edificioId  String?
+  comment     String
+  rating      Int?     // Puntuación de 1 a 5 estrellas
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  parent      Comment? @relation("ParentComment", fields: [parentId], references: [id])
+  parentId    String?
+  replies     Comment[] @relation("ParentComment")
+  reactions   Reaction[]
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  comment   Comment  @relation(fields: [commentId], references: [id])
+  commentId String
+  type      String   // "like", "love", "haha", "angry", etc.
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId]) // Un usuario solo puede reaccionar una vez por comentario
+}

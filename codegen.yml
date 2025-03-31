@@ -1,0 +1,13 @@
+# codegen.yml
+overwrite: true
+schema: http://localhost:3000/api/graphql # URL de tu servidor GraphQL
+documents: null
+generates:
+  src/graphql/generated/graphql.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-resolvers'
+    config:
+      contextType: prisma/IPrismaContext#IPrismaContext
+      useIndexSignature: true
+      federation: true
