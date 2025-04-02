@@ -22,14 +22,16 @@ import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from "react";
 moment().locale('es');
 
-function useProductos(searchTerm: string, page: number, pageSize: number) {
+function useProductos(searchTerm: string, paginationModel: { page: number, pageSize: number}) {
+  let page = paginationModel.page
+  let pageSize = paginationModel.pageSize
   const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
-    variables: { searchTerm, page, pageSize }, fetchPolicy: "cache-and-network"
+    variables: { searchTerm, page: page + 1, pageSize }, fetchPolicy: "cache-and-network"
   });
 
   return {
     products: data?.listProductos.productos || [],
-    totalCount: data?.listProductos.totalCount || 0,
+    totalCount: data?.listProductos.totalCount,
     loading,
     error,
     refetch
@@ -47,14 +49,19 @@ export default function ProductosTable() {
   const { data: imagesData } = useQuery(GET_IMAGES, { fetchPolicy: "cache-first" });
   const { data: brandsData } = useQuery(GET_BRANDS, { fetchPolicy: "cache-first" });
 
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
+  const [paginationModel, setPaginationModel] = React.useState({
+    page: 0, // Página inicial (0-based)
+    pageSize: 100, // Tamaño de página predeterminado
+  });
 
-  const { products, totalCount, loading, error, refetch } = useProductos(searchTerm, page, pageSize);
-  const [productos, setProductos] = useState([]);
+
+
+  const { products, totalCount, loading, error, refetch } = useProductos(searchTerm, paginationModel);
+
   const isMounted = useRef(true);
   const { data: session } = useSession();
 
+  
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -62,11 +69,11 @@ export default function ProductosTable() {
     };
   }, []);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (!loading && products && isMounted.current) {
       setProductos(products);
     }
-  }, [loading, products]);
+  }, [loading, products]);*/
 
 
 
@@ -78,13 +85,7 @@ export default function ProductosTable() {
   }, [session, role]);
 
   const hasAccess = useMemo(() => role >= 5, [role]);
-  console.log(hasAccess)
-
-  const handlePageChange = (model) => {
-    if (page !== model.page + 1) {
-      setPage(model.page + 1);
-    }
-  };
+  
 
 
   const [createProducto] = useMutation(CREATE_PRODUCTO);
@@ -660,6 +661,8 @@ export default function ProductosTable() {
 
   
 
+  
+
   if (error) {
     return (
       <PageContainer>
@@ -704,14 +707,15 @@ export default function ProductosTable() {
         {/* DataGrid */}
         <DataGrid
           localeText={esES.components.MuiDataGrid.defaultProps.localeText}
-          rows={productos}
+          rows={products} // Los datos provienen del backend
           columns={columns}
           loading={loading}
           pageSizeOptions={[5, 10, 20, 100]}
+          paginationModel={paginationModel} // Estado de paginación
+          onPaginationModelChange={setPaginationModel} // Actualiza el estado
           pagination
           paginationMode="server"
-          rowCount={totalCount}
-          onPaginationModelChange={handlePageChange}
+          rowCount={totalCount} // Total de registros desde el backend
           editMode="row"
           getRowHeight={() => 60}
           processRowUpdate={handleEditCell}
