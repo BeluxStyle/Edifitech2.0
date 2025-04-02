@@ -599,13 +599,8 @@ export default function ProductosTable() {
         return (
           <Select
             value={params.row.subcategory?.id || ""}
-            onChange={(e) => {
-              const updatedRow = {
-                ...params.row,
-                subcategory: subcategories.find((sub) => sub.id === e.target.value),
-              };
-              handleEditCell(updatedRow);
-            }}
+            onChange={(e) => params.api.setEditCellValue({ id: params.id, field: "subcategory", value: subcategories.find(sub => sub.id === e.target.value) })}
+            
             fullWidth
             sx={{ fontSize: 12, height: 30 }}
             disabled={!filteredSubcategories.length}
