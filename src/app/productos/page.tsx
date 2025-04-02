@@ -51,7 +51,7 @@ export default function ProductosTable() {
 
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0, // Página inicial (0-based)
-    pageSize: 100, // Tamaño de página predeterminado
+    pageSize: 20, // Tamaño de página predeterminado
   });
 
 
@@ -69,13 +69,6 @@ export default function ProductosTable() {
     };
   }, []);
 
-  /*useEffect(() => {
-    if (!loading && products && isMounted.current) {
-      setProductos(products);
-    }
-  }, [loading, products]);*/
-
-
 
   const [role, setRole] = useState(0);
   useEffect(() => {
@@ -88,11 +81,11 @@ export default function ProductosTable() {
   
 
 
-  const [createProducto] = useMutation(CREATE_PRODUCTO);
-  const [updateProducto] = useMutation(UPDATE_PRODUCTO);
-  const [deleteProducto] = useMutation(DELETE_PRODUCTO);
-  const [importProducts] = useMutation(IMPORT_PRODUCTS);
-  const [createImage] = useMutation(CREATE_IMAGE);
+  const [createProducto] = useMutation(CREATE_PRODUCTO, {refetchQueries: ["ListProductos"],});
+  const [updateProducto] = useMutation(UPDATE_PRODUCTO, {refetchQueries: ["ListProductos"],});
+  const [deleteProducto] = useMutation(DELETE_PRODUCTO, {refetchQueries: ["ListProductos"],});
+  const [importProducts] = useMutation(IMPORT_PRODUCTS, {refetchQueries: ["ListProductos"],});
+  const [createImage] = useMutation(CREATE_IMAGE, {refetchQueries: ["ListProductos", "ListImages"],});
 
   const [openModal, setOpenModal] = useState(false);
   const [openCsvModal, setOpenCsvModal] = useState(false);
