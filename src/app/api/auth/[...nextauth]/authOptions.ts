@@ -88,30 +88,38 @@ export const authOptions = {
       // Para otros proveedores (como credenciales), devolver true
       return true;
     },    
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          include: { role: true }, // Traer el rol del usuario
+          select: { id: true, email: true, role: true }, // Solo traemos lo necesario
         });
-        
-
+    
         if (dbUser) {
           token.id = dbUser.id;
+          token.email = dbUser.email; // Guardamos email porque puede ser útil en otros lados
           token.role = dbUser.role;
+    
           await prisma.user.update({
             where: { id: token.id },
             data: { lastLogin: new Date(), isOnline: true },
           });
         }
       }
-
+    
       return token;
     },
+    
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role
+      if (session.user && token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { role: true }, // Traemos el rol actualizado de la DB
+        });
+    
+        if (dbUser) {
+          session.user.role = dbUser.role; // Actualizamos el rol en la sesión
+        }
       }
       return session;
     },
