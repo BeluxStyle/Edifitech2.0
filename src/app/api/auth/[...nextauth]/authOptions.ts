@@ -92,34 +92,27 @@ export const authOptions = {
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { id: true, email: true, role: true }, // Solo traemos lo necesario
+          include: { role: true },
         });
-    
+  
         if (dbUser) {
           token.id = dbUser.id;
-          token.email = dbUser.email; // Guardamos email porque puede ser útil en otros lados
+          token.email = dbUser.email; // <- aseguramos el email
           token.role = dbUser.role;
-    
           await prisma.user.update({
-            where: { id: token.id },
+            where: { id: dbUser.id },
             data: { lastLogin: new Date(), isOnline: true },
           });
         }
       }
-    
       return token;
     },
     
     async session({ session, token }) {
-      if (session.user && token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id },
-          select: { role: true }, // Traemos el rol actualizado de la DB
-        });
-    
-        if (dbUser) {
-          session.user.role = dbUser.role; // Actualizamos el rol en la sesión
-        }
+      if (session.user && token.id && token.email) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.role = token.role; // <- pasamos el rol completo
       }
       return session;
     },
