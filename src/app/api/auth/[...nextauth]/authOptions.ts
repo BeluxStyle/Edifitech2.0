@@ -109,11 +109,19 @@ export const authOptions = {
     },
     
     async session({ session, token }) {
-      if (session.user && token.id && token.email) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.role = token.role; // <- pasamos el rol completo
+      if (session.user && token.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+          select: { id: true, email: true, role: true },
+        });
+    
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.email = dbUser.email;
+          session.user.role = dbUser.role; // <- rol actualizado desde DB
+        }
       }
+    
       return session;
     },
     async redirect({ url, baseUrl }) {
