@@ -3,7 +3,7 @@ import { EdifitechLoading } from '@/components/CustomIcons';
 import PageContainer from '@/components/PageContainer';
 import { CREATE_DOCUMENT, DELETE_DOCUMENT, GET_DOCUMENTS, UPDATE_DOCUMENT } from "@/graphql/queries";
 import { useMutation, useQuery } from "@apollo/client";
-import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
+import { ArrowForward, FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Alert, Box, Button, IconButton, InputAdornment, Modal, Snackbar, TextField, Typography } from "@mui/material";
 import { DataGrid, GridAddIcon, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
@@ -62,8 +62,8 @@ export default function DocumentsTable() {
 
   const handleEditCell = async (params: any) => {
     try {
-      const { id, name } = params;
-      await updateDocument({ variables: { id, name } });
+      const { id, url } = params;
+      await updateDocument({ variables: { id, input: { url } } });
       setSnackbar({ children: `Marca ${name} actualizado correctamente`, severity: "success" });
       refetch();
       return params;
@@ -110,16 +110,33 @@ export default function DocumentsTable() {
 
 
   const columns: GridColDef[] = [
+    { field: "goto", 
+      headerName: "Ir a", 
+      flex: 1, 
+      maxWidth: 100,
+      renderCell: (params) => {
+        const url = params.row.url;
+        return (
+          <IconButton color="primary" onClick={() => window.open(url, "_blank")}>
+            <ArrowForward/>
+          </IconButton>
+        );
+      },
+    },
     { field: "url", headerName: "Url", flex: 1, editable: true },
+    
     {
       field: "manuals",
       headerName: "Manuales",
+      maxWidth: 100,
       flex: 1,
       renderCell: (params) => <>{params.row.manuals?.length}</>,
     },
+
     {
       field: "actions",
       headerName: "Opciones",
+      maxWidth: 100,
       sortable: false,
       renderCell: (params) => {
         if (!params.id) {

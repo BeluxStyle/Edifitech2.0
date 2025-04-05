@@ -310,7 +310,7 @@ type Query {
   listBrands: [Brand!]!
   countBrands: Int!
   getManual(id: ID!): Manual
-  listManuals: [Manual!]!
+  listManuals(searchTerm: String, page: Int!, pageSize: Int!): ManualsResponse!
   countManuals: Int!
   getDocument(id: ID!): Document
   listDocuments: [Document!]!
@@ -415,8 +415,8 @@ type Mutation {
   deleteCompanySubscription(id: ID!): Boolean!
 
   # Operaciones CRUD para Manual
-  createManual(input: ManualInput!): Manual!
-  updateManual(id: ID!, input: ManualInput!): Manual!
+  createManual(input: ManualInput!): ImportResponseManual!
+  updateManual(id: ID!, input: ManualUpdateInput!): Manual!
   deleteManual(id: ID!): Boolean!
 
   # Operaciones CRUD para Document
@@ -500,11 +500,23 @@ type ImportResponse {
   message: String!
 }
 
+type ImportResponseManual {
+  success: Boolean!
+  message: String!
+  manual: Manual
+}
+
 input ManualInput {
   name: String!
   url: String!
   description: String
-  referencias: String!
+  referencias: String
+}
+
+input ManualUpdateInput {
+  name: String!
+  description: String
+  referencias: String
 }
 
 input DocumentInput {
@@ -513,6 +525,11 @@ input DocumentInput {
 
 type ProductosResponse {
   productos: [Producto!]!
+  totalCount: Int!
+}
+
+type ManualsResponse {
+  manuals: [Manual!]!
   totalCount: Int!
 }
 

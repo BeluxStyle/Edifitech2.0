@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 import { Session } from "next-auth";
-import { ComunidadInput, ContactoInput, EdificioInput, ElementoInput, InstalacionInput, ProductoInput } from "@/lib/types";
+import { ComunidadInput, ContactoInput, EdificioInput, ElementoInput, InstalacionInput, ManualInput, ProductoInput, DocumentInput } from "@/lib/types";
+import { create } from "domain";
 
 
 
@@ -347,9 +348,49 @@ export const resolvers = {
       return prisma.manual.findUnique({ where: { id } });
     }
     ,
-    listManuals: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
-      if (!context.session?.user?.id) throw new Error("no autenticado");
-      return prisma.manual.findMany({ include: { documento: true, productos: true } });
+    listManuals: async (
+      _parent: unknown,
+      { searchTerm, page, pageSize }: { searchTerm: string; page: number; pageSize: number },
+      context: { session: Session }
+    ) => {
+      // Verificar autenticación
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+    
+      // Construir el filtro dinámico
+      const where = {
+        AND: [
+          ...(searchTerm
+            ? [
+                {
+                  OR: [
+                    { name: { contains: searchTerm } }, // Buscar por nombre
+                    { description: { contains: searchTerm } }, // Buscar por descripción
+                  ],
+                },
+              ]
+            : []),
+        ],
+      };
+    
+      // Consulta para obtener los manuales
+      const manuals = await prisma.manual.findMany({
+        where,
+        skip: (page - 1) * pageSize, // Paginación: Saltar registros
+        take: pageSize, // Número de registros por página
+        include: {
+          documento: true, // Incluir el documento asociado
+          productos: true, // Incluir los productos asociados
+        },
+      });
+    
+      // Contar el total de manuales que coinciden con el filtro
+      const totalCount = await prisma.manual.count({ where });
+    
+      // Retornar los resultados
+      return {
+        manuals,
+        totalCount,
+      };
     },
     countManuals: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
@@ -520,6 +561,69 @@ export const resolvers = {
 
 
     // Mutations existentes
+    createManual: async (_, { input }, { prisma }) => {
+      try {
+        const { name, url, description, referencias } = input;
+    
+        // Validar que los campos obligatorios estén presentes
+        if (!name || !url || !referencias) {
+          throw new Error("El nombre, la URL y las referencias son obligatorios.");
+        }
+    
+        // Buscar o crear el documento asociado al manual
+        let documento = await prisma.document.findUnique({ where: { url } });
+        if (!documento) {
+          documento = await prisma.document.create({ data: { url } });
+        }
+    
+        // Extraer las referencias de productos usando regex (asumiendo formato "Ref: 12345")
+        const referenciasNumeros = referencias
+          .match(/Ref:\s*(\d+)/gi)
+          ?.map((match) => match.replace(/Ref:\s*/, "").trim()) || [];
+    
+        if (referenciasNumeros.length === 0) {
+          console.warn(`⚠️ No se encontraron referencias válidas en: "${referencias}"`);
+        }
+    
+        // Crear el manual
+        const manual = await prisma.manual.create({
+          data: {
+            name,
+            description: description || "", // La descripción es opcional
+            documentoId: documento.id,
+          },
+        });
+    
+        // Buscar productos por sus referencias
+        const productosExistentes = await prisma.producto.findMany({
+          where: { ref: { in: referenciasNumeros } },
+          select: { id: true, ref: true },
+        });
+    
+        console.log(`🔗 Productos encontrados en BD: ${productosExistentes.length}`);
+    
+        // Conectar los productos encontrados al manual
+        if (productosExistentes.length > 0) {
+          await prisma.manual.update({
+            where: { id: manual.id },
+            data: {
+              productos: {
+                connect: productosExistentes.map((producto) => ({ id: producto.id })),
+              },
+            },
+          });
+        }
+    
+        return {
+          success: true,
+          message: "Manual creado correctamente",
+          manual,
+        };
+      } catch (error) {
+        console.error("❌ Error al crear el manual:", error);
+        throw new Error("Error al crear el manual");
+      }
+    },
     createUser: async (
       _parent: unknown,
       { name, email, password }: { name: string; email: string; password: string },
@@ -1105,6 +1209,80 @@ export const resolvers = {
       const deleted = await prisma.contacto.delete({ where: { id } });
       return deleted !== null;
     },
+    deleteManual: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      const deleted = await prisma.manual.delete({ where: { id } });
+      return deleted !== null;
+    }
+    ,
+    updateManual: async (
+      _parent: unknown,
+      { id, input }: { id: string; input: ManualInput },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+    
+      // Extraer las referencias de productos del input
+      const { name, description, referencias } = input;
+    
+      // Encontrar los IDs de los productos correspondientes a las referencias
+      const referenciasNumeros = referencias
+        .match(/Ref:\s*(\d+)/gi)
+        ?.map((match) => match.replace(/Ref:\s*/, "").trim()) || [];
+    
+      const productosExistentes = await prisma.producto.findMany({
+        where: { ref: { in: referenciasNumeros } },
+        select: { id: true },
+      });
+    
+      const productoIds = productosExistentes.map((producto) => producto.id);
+    
+      // Actualizar el manual
+      return prisma.manual.update({
+        where: { id },
+        data: {
+          name,
+          description,
+          productos: {
+            set: productoIds.map((id) => ({ id })), // Conectar los productos seleccionados
+          },
+        },
+      });
+    },
+    createDocument: async (
+      _parent: unknown,
+      { url }: { url: string },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      return prisma.document.create({ data: { url } });
+    }
+    ,
+    updateDocument: async (
+      _parent: unknown,
+      { id, input}: { id: string; input: DocumentInput },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      return prisma.document.update({
+        where: { id },
+        data: input ,
+      });
+    },
+    deleteDocument: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      const deleted = await prisma.document.delete({ where: { id } });
+      return deleted !== null;
+    }
+    ,
 
 
     // ... (añadir más mutations según sea necesario)

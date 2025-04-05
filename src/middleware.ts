@@ -28,6 +28,8 @@ export default withAuth(
       '/settings': 5, // Solo usuarios con nivel >= 50 pueden acceder
       '/comunidades': 2, // Usuarios con nivel >= 2 pueden acceder
       '/edificios': 2, // Usuarios con nivel >= 2 pueden acceder
+      '/documentos': 2, // Usuarios con nivel >= 2 pueden acceder
+      '/avisos': 2, // Usuarios con nivel >= 2 pueden acceder
     };
 
     // Verificar si el usuario tiene acceso a la ruta

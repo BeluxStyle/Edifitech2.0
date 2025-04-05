@@ -341,28 +341,22 @@ export const IMPORT_MANUALS = gql`
 `;
 
 export const CREATE_MANUAL = gql`
-mutation Mutation($input: ManualInput!) {
+mutation CreateManual($input: ManualInput!) {
   createManual(input: $input) {
-    id
-    descripcion
-    name
-    document {
+    success
+    message
+    manual {
       id
-      url
+      name
     }
   }
 }
 `
 export const UPDATE_MANUAL = gql`
-mutation Mutation($id: ID!, $input: ManualInput!) {
+mutation Mutation($id: ID!, $input: ManualUpdateInput!) {
   updateManual(id: $id, input: $input) {
     id
-    descripcion
     name
-    document {
-      id
-      url
-    }
   }
 }
 `
@@ -478,8 +472,9 @@ mutation Mutation($id: ID!) {
 }
 `
 export const GET_MANUALS = gql`
-query Query {
-  listManuals {
+query getManuals ($searchTerm: String, $page: Int!, $pageSize: Int!) {
+  listManuals(searchTerm: $searchTerm, page: $page, pageSize: $pageSize) {
+    manuals {
     id
     description
     name
@@ -490,7 +485,11 @@ query Query {
     productos {
       id
       ref
+      name
+      descripcion
     }
+    }
+    totalCount
   }
 }
 `
@@ -601,7 +600,7 @@ mutation Mutation($input: DocumentInput!) {
 }
 `
 export const UPDATE_DOCUMENT = gql`
-mutation Mutation($id: ID!, $name: String!) {
+mutation Mutation($id: ID!, $input: DocumentInput!) {
   updateDocument(id: $id, input: $input) {
     id
     url

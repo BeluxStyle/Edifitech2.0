@@ -9,7 +9,7 @@ interface PageContainerProps {
 
 const PageContainer: React.FC<PageContainerProps> = ({ children }) => {
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ mb: 10 }}>
       <Box sx={{ paddingTop: '1rem'}}>
         {children}
       </Box>
