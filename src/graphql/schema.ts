@@ -451,6 +451,7 @@ input CompanyInput {
   cif: String!
   address: String!
   phone: String!
+  type: String!
 }
 
 input ComunidadInput {

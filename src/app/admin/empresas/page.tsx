@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
 import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
-import { Alert, Box, Button, Chip, IconButton, InputAdornment, Modal, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, IconButton, InputAdornment, MenuItem, Select, Modal, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid, GridAddIcon, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import { Company } from '@prisma/client';
@@ -25,38 +25,38 @@ export default function CompaniesTable() {
   const [deleteCompany] = useMutation(DELETE_COMPANY);
 
   const [openModal, setOpenModal] = useState(false);
-  const [newCompany, setNewCompany] = useState({ name: "" });
+  const [newCompany, setNewCompany] = useState({ name: "", cif: "", phone: "", address: "", type: "" });
   const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
   const [searchText, setSearchText] = useState(''); // Estado para el texto de búsqueda
-  
 
-   // Estado para el modal de detalles
-   const [openDetailsModal, setOpenDetailsModal] = useState(false);
-   const [selectedCompany, setSelectedCompany] = useState<Company>(null); // Empresa seleccionada
-   const [isMounted, setIsMounted] = useState(true);
 
-useEffect(() => {
-  setIsMounted(true);
-  return () => setIsMounted(false); // Marcar desmontaje
-}, []);
+  // Estado para el modal de detalles
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company>(null); // Empresa seleccionada
+  const [isMounted, setIsMounted] = useState(true);
 
-useEffect(() => {
-  if (!loading && data && isMounted) {
-    refetch();
-  }
-}, [loading, data, isMounted]);
- 
-   // Función para abrir el modal con los detalles de la empresa
-   const handleOpenDetailsModal = (company: Company) => {
-     setSelectedCompany(company);
-     setOpenDetailsModal(true);
-   };
- 
-   // Función para cerrar el modal
-   const handleCloseDetailsModal = () => {
-     setOpenDetailsModal(false);
-     setSelectedCompany(null);
-   };
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false); // Marcar desmontaje
+  }, []);
+
+  useEffect(() => {
+    if (!loading && data && isMounted) {
+      refetch();
+    }
+  }, [loading, data, isMounted]);
+
+  // Función para abrir el modal con los detalles de la empresa
+  const handleOpenDetailsModal = (company: Company) => {
+    setSelectedCompany(company);
+    setOpenDetailsModal(true);
+  };
+
+  // Función para cerrar el modal
+  const handleCloseDetailsModal = () => {
+    setOpenDetailsModal(false);
+    setSelectedCompany(null);
+  };
 
   const handleCloseSnackbar = () => setSnackbar(null);
 
@@ -95,7 +95,7 @@ useEffect(() => {
   const handleEditCell = async (params: any) => {
     try {
       const { id, name, cif, phone, address } = params;
-      await updateCompany({ variables: { id, input: { name, cif, phone, address }  } });
+      await updateCompany({ variables: { id, input: { name, cif, phone, address } } });
       setSnackbar({ children: `Empresa ${name} actualizada correctamente`, severity: "success" });
       refetch();
       return params;
@@ -217,110 +217,146 @@ useEffect(() => {
           <IconButton onClick={() => handleDelete(String(params.id))} color="error">
             <DeleteIcon />
           </IconButton>
-          <IconButton onClick={() => handleOpenDetailsModal(params.row) } color="secondary">
+          <IconButton onClick={() => handleOpenDetailsModal(params.row)} color="secondary">
             <RemoveRedEyeIcon />
           </IconButton>
-            
+
         </Box>
       ),
     },
   ];
 
-  
+
   if (error) {
     return <Alert severity="error">Error al cargar datos</Alert>;
   }
 
   return (
     <PageContainer>
-    <Box sx={{ flex: 1, flexDirection: 'column' }}>
-      <Typography variant='h4'>Listado de Empresas</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'right', gap: 1, mb: 4 }}>
-        <TextField
-          variant="outlined"
-          sx={{ width: "100%" }}
+      <Box sx={{ flex: 1, flexDirection: 'column' }}>
+        <Typography variant='h4'>Listado de Empresas</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'right', gap: 1, mb: 4 }}>
+          <TextField
+            variant="outlined"
+            sx={{ width: "100%" }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlined />
+                  </InputAdornment>
+                ),
+              },
+            }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+
+          />
+          <Button variant="contained" onClick={() => refetch()} sx={{ width: 30, color: 'white', bgcolor: 'primary.main' }}>
+            <Refresh />
+          </Button>
+          <Button variant="contained" onClick={() => setOpenModal(true)} sx={{ width: 130, color: 'white', bgcolor: 'primary.main' }}>
+            <GridAddIcon /> Nuevo
+          </Button>
+
+        </Box>
+        {/* Botón para abrir el modal */}
+
+
+        {/* DataGrid */}
+        <DataGrid
+          localeText={esES.components.MuiDataGrid.defaultProps.localeText}
+          rows={filteredRows}
+          columns={columns}
+          loading={loading}
+          pageSizeOptions={[5, 10, 20, 100]}
+          editMode="row"
+          getRowHeight={() => 60}
+          processRowUpdate={handleEditCell}
+          onProcessRowUpdateError={handleProcessRowUpdateError}
+          onRowEditStop={(params, event) => {
+            if (params.reason === GridRowEditStopReasons.rowFocusOut) event.defaultMuiPrevented = true;
+          }}
+          slots={{
+            toolbar: CustomToolbar,
+          }}
           slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchOutlined />
-                </InputAdornment>
-              ),
+            loadingOverlay: {
+              variant: 'skeleton',
+              noRowsVariant: 'skeleton',
             },
           }}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+
 
         />
-        <Button variant="contained" onClick={() => refetch()} sx={{ width: 30, color: 'white', bgcolor: 'primary.main' }}>
-          <Refresh />
-        </Button>
-        <Button variant="contained" onClick={() => setOpenModal(true)} sx={{ width: 130, color: 'white', bgcolor: 'primary.main' }}>
-          <GridAddIcon /> Nuevo
-        </Button>
-        
+
+        {/* Modal para agregar usuario */}
+        <Modal open={openModal} onClose={() => setOpenModal(false)}>
+          <Box sx={{ p: 4, bgcolor: "white", width: 400, mx: "auto", mt: 10, borderRadius: 2 }}>
+            <Typography variant="h6">Crear empresa</Typography>
+            <TextField
+              fullWidth
+              label="Nombre"
+              name="name"
+              value={newCompany.name}
+              onChange={handleChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Cif"
+              name="cif"
+              value={newCompany.cif}
+              onChange={handleChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Teléfono"
+              name="phone"
+              value={newCompany.phone}
+              onChange={handleChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Dirección"
+              name="address"
+              value={newCompany.address}
+              onChange={handleChange}
+              margin="normal"
+            />
+            <Select
+              fullWidth
+              label="Tipo"
+              name="type"
+              value={newCompany.type}
+              onChange={handleChange}
+              defaultValue="INSTALADOR"
+            >
+              <MenuItem value="INSTALADOR">Instalador</MenuItem>
+              <MenuItem value="ADMINISTRADOR">Administrador</MenuItem>
+              <MenuItem value="PROVEEDOR">Proveedor</MenuItem>
+            </Select>
+            <Button variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
+              Crear
+            </Button>
+          </Box>
+        </Modal>
+
+        {/*Modal vista de usuarios y comunidades */}
+        <CompanyDetailsModal open={openDetailsModal} company={selectedCompany} onClose={handleCloseDetailsModal} />
+
+
+        {/* Notificaciones */}
+        {!!snackbar && (
+          <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={handleCloseSnackbar} autoHideDuration={6000}>
+            <Alert severity={snackbar.severity} onClose={handleCloseSnackbar}>
+              {snackbar.children}
+            </Alert>
+          </Snackbar>
+        )}
       </Box>
-      {/* Botón para abrir el modal */}
-
-
-      {/* DataGrid */}
-      <DataGrid
-        localeText={esES.components.MuiDataGrid.defaultProps.localeText}
-        rows={filteredRows}
-        columns={columns}
-        loading={loading}
-        pageSizeOptions={[5, 10, 20, 100]}
-        editMode="row"
-        getRowHeight={() => 60}
-        processRowUpdate={handleEditCell}
-        onProcessRowUpdateError={handleProcessRowUpdateError}
-        onRowEditStop={(params, event) => {
-          if (params.reason === GridRowEditStopReasons.rowFocusOut) event.defaultMuiPrevented = true;
-        }}
-        slots={{
-          toolbar: CustomToolbar,
-        }}
-        slotProps={{
-          loadingOverlay: {
-            variant: 'skeleton',
-            noRowsVariant: 'skeleton',
-          },
-        }}
-
-
-      />
-
-      {/* Modal para agregar usuario */}
-      <Modal open={openModal} onClose={() => setOpenModal(false)}>
-        <Box sx={{ p: 4, bgcolor: "white", width: 400, mx: "auto", mt: 10, borderRadius: 2 }}>
-          <Typography variant="h6">Agregar Marca</Typography>
-          <TextField
-            fullWidth
-            label="Nombre"
-            name="name"
-            value={newCompany.name}
-            onChange={handleChange}
-            margin="normal"
-          />
-          <Button variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
-            Crear
-          </Button>
-        </Box>
-      </Modal>
-
-      {/*Modal vista de usuarios y comunidades */}
-      <CompanyDetailsModal open={openDetailsModal} company={selectedCompany} onClose={handleCloseDetailsModal} />
-
-
-      {/* Notificaciones */}
-      {!!snackbar && (
-        <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={handleCloseSnackbar} autoHideDuration={6000}>
-          <Alert severity={snackbar.severity} onClose={handleCloseSnackbar}>
-            {snackbar.children}
-          </Alert>
-        </Snackbar>
-      )}
-    </Box>
     </PageContainer>
   );
 }
