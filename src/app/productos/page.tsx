@@ -7,7 +7,8 @@ import { useMutation, useQuery } from "@apollo/client";
 import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Alert, Box, Button, Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Modal, Select, Snackbar, TextField, Typography } from "@mui/material";
+import { Description } from "@mui/icons-material";
+import { Alert, Box, Button, Badge, Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Modal, Select, Snackbar, TextField, Typography } from "@mui/material";
 import ImageList from '@mui/material/ImageList';
 import ImageListItem from '@mui/material/ImageListItem';
 import { styled } from "@mui/material/styles";
@@ -22,7 +23,7 @@ import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from "react";
 moment().locale('es');
 
-function useProductos(searchTerm: string, paginationModel: { page: number, pageSize: number}) {
+function useProductos(searchTerm: string, paginationModel: { page: number, pageSize: number }) {
   let page = paginationModel.page
   let pageSize = paginationModel.pageSize
   const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
@@ -39,6 +40,9 @@ function useProductos(searchTerm: string, paginationModel: { page: number, pageS
 }
 
 export default function ProductosTable() {
+
+  const [manuals, setManuals] = useState([]);
+  const [modalManuals, setModalManuals] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<{ [key: string]: string }>({});
@@ -61,7 +65,7 @@ export default function ProductosTable() {
   const isMounted = useRef(true);
   const { data: session } = useSession();
 
-  
+
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -78,14 +82,14 @@ export default function ProductosTable() {
   }, [session, role]);
 
   const hasAccess = useMemo(() => role >= 5, [role]);
-  
 
 
-  const [createProducto] = useMutation(CREATE_PRODUCTO, {refetchQueries: ["ListProductos"],});
-  const [updateProducto] = useMutation(UPDATE_PRODUCTO, {refetchQueries: ["ListProductos"],});
-  const [deleteProducto] = useMutation(DELETE_PRODUCTO, {refetchQueries: ["ListProductos"],});
-  const [importProducts] = useMutation(IMPORT_PRODUCTS, {refetchQueries: ["ListProductos"],});
-  const [createImage] = useMutation(CREATE_IMAGE, {refetchQueries: ["ListProductos", "ListImages"],});
+
+  const [createProducto] = useMutation(CREATE_PRODUCTO, { refetchQueries: ["ListProductos"], });
+  const [updateProducto] = useMutation(UPDATE_PRODUCTO, { refetchQueries: ["ListProductos"], });
+  const [deleteProducto] = useMutation(DELETE_PRODUCTO, { refetchQueries: ["ListProductos"], });
+  const [importProducts] = useMutation(IMPORT_PRODUCTS, { refetchQueries: ["ListProductos"], });
+  const [createImage] = useMutation(CREATE_IMAGE, { refetchQueries: ["ListProductos", "ListImages"], });
 
   const [openModal, setOpenModal] = useState(false);
   const [openCsvModal, setOpenCsvModal] = useState(false);
@@ -150,7 +154,7 @@ export default function ProductosTable() {
           width={500} // Ajusta el tamaño grande
           height={500}
           placeholder="blur" // Muestra un placeholder mientras carga
-        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" // Imagen pequeña en base64
+          blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" // Imagen pequeña en base64
           style={{
             objectFit: "contain",
             borderRadius: 8,
@@ -211,14 +215,14 @@ export default function ProductosTable() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let { name, value } = e.target;
-  
+
     if (name === "price") {
       // Reemplaza comas por puntos
       value = value.replace(",", ".");
-  
+
       // Convierte a número flotante, permitiendo que se deje vacío
       const priceValue = value === "" ? NaN : parseFloat(value);
-  
+
       // Verifica si el valor es un número válido y no negativo
       if (isNaN(priceValue) || priceValue < 0) {
         setErrors((prev) => ({
@@ -228,13 +232,13 @@ export default function ProductosTable() {
       } else {
         setErrors((prev) => ({ ...prev, [name]: "" }));
       }
-  
+
       // Actualiza el estado con el valor numérico o NaN
       setNewProducto((prev) => ({ ...prev, [name]: priceValue }));
     } else {
       setNewProducto((prev) => ({ ...prev, [name]: value }));
     }
-  
+
     validateField(name, value);
   };
 
@@ -398,40 +402,44 @@ export default function ProductosTable() {
             }}
           >
             <IconButton
-            onClick={() => {
-              if (imageUrl.trim()) {
-                onUpload(imageUrl); // Pasar la URL al handleUpload
-                setImageUrl(""); // Limpiar el campo después de usarlo
-              }
-            }}
-            sx={{
-              width: 120,
-              height: 120,
-              border: "2px dashed gray",
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <AddPhotoAlternateIcon fontSize="large" />
-          </IconButton>
+              onClick={() => {
+                if (imageUrl.trim()) {
+                  onUpload(imageUrl); // Pasar la URL al handleUpload
+                  setImageUrl(""); // Limpiar el campo después de usarlo
+                }
+              }}
+              sx={{
+                width: 120,
+                height: 120,
+                border: "2px dashed gray",
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AddPhotoAlternateIcon fontSize="large" />
+            </IconButton>
 
-          <TextField
-            id="imgUrl"
-            variant="outlined"
-            placeholder="URL de la imagen"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)} // Actualizar el estado con la URL ingresada
-            fullWidth
-            sx={{ maxWidth: 400 }}
-          />
+            <TextField
+              id="imgUrl"
+              variant="outlined"
+              placeholder="URL de la imagen"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)} // Actualizar el estado con la URL ingresada
+              fullWidth
+              sx={{ maxWidth: 400 }}
+            />
 
             <Typography sx={{ mt: 1, textAlign: "center" }}>Añade la URL de una nueva imagen</Typography>
           </Box>
         </DialogContent>
       </Dialog>
     );
+  };
+  const handleShowManuals = (manuales) => {
+    setManuals(manuales);
+    setModalManuals(true);
   };
 
   const ImageCellEditor = (params) => {
@@ -441,6 +449,8 @@ export default function ProductosTable() {
       params.api.setEditCellValue({ id: params.id, field: "image", value: img });
       setOpen(false);
     };
+
+
 
     const handleUpload = async (url) => {
       console.log("URL de la nueva imagen:", url);
@@ -452,6 +462,8 @@ export default function ProductosTable() {
       params.api.setEditCellValue({ id: params.id, field: "image", value: image });
       setOpen(false);
     };
+
+
 
     return (
       <>
@@ -509,7 +521,12 @@ export default function ProductosTable() {
       headerName: "Manuales",
       maxWidth: 80,
       flex: 1,
-      renderCell: (params) => <>{params.row.manuals?.length}</>,
+      renderCell: (params) => <>
+        <IconButton size="small" color={params.row.manuals.length ? "primary" : "default"} onClick={() => handleShowManuals(params.row.manuals)}>
+          <Badge badgeContent={params.row.manuals.length} color="primary">
+            <Description />
+          </Badge>
+        </IconButton></>,
     },
     {
       field: "brand",
@@ -600,7 +617,7 @@ export default function ProductosTable() {
           <Select
             value={params.row.subcategory?.id || ""}
             onChange={(e) => params.api.setEditCellValue({ id: params.id, field: "subcategory", value: subcategories.find(sub => sub.id === e.target.value) })}
-            
+
             fullWidth
             sx={{ fontSize: 12, height: 30 }}
             disabled={!filteredSubcategories.length}
@@ -647,9 +664,9 @@ export default function ProductosTable() {
     },
   ];
 
-  
 
-  
+
+
 
   if (error) {
     return (
@@ -720,7 +737,7 @@ export default function ProductosTable() {
               </Box>
             ),
           }}
-          
+
 
 
         />
@@ -864,6 +881,21 @@ export default function ProductosTable() {
                 }
               }}
             />
+          </Box>
+        </Modal>
+        <Modal open={Boolean(modalManuals)} onClose={() => setModalManuals(null)}>
+          <Box sx={{ p: 3, backgroundColor: "white", width: 500, margin: "auto", mt: 10 }}>
+            <Typography variant="h6">Manuales</Typography>
+            {modalManuals && manuals.length > 0 ? (
+              manuals.map((manual, index) => (
+                <Typography key={index} sx={{ mt: 1 }}>
+                  <a href={manual.documento.url} target="_blank" rel="noopener noreferrer">{manual.name}</a>
+                </Typography>
+              ))
+            ) : (
+              <Typography sx={{ mt: 2 }}>No hay manuales disponibles.</Typography>
+            )}
+            <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setModalManuals(null)}>Cerrar</Button>
           </Box>
         </Modal>
 

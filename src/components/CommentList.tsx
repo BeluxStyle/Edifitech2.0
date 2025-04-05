@@ -37,6 +37,7 @@ const CommentsList = ({ comments, size }) => {
       }, [session]);
 
       const addAccess = useMemo(() => role >= 2, [role]);
+      const adminAccess = useMemo(() => role >= 99, [role]);
 
   const [addReactionMutation] = useMutation(ADD_REACTION, {
     refetchQueries: ["GetComunidad", "GetEdificio"], // Para actualizar la UI después de reaccionar
@@ -155,7 +156,7 @@ const CommentsList = ({ comments, size }) => {
                   </Badge>
                 </Tooltip>
 
-                <IconButton disabled={comment.author.id !== session?.user.id} size="small" color="error" onClick={() => showConfirm("Eliminar Comentario", "¿Seguro que quieres eliminarlo?", () => handleDeleteComment(comment.id))}>
+                <IconButton disabled={adminAccess ? !adminAccess : comment.author.id !== session?.user.id} size="small" color="error" onClick={() => showConfirm("Eliminar Comentario", "¿Seguro que quieres eliminarlo?", () => handleDeleteComment(comment.id))}>
                   <Delete fontSize="small" />
                 </IconButton>
               </Box>
@@ -173,7 +174,7 @@ const CommentsList = ({ comments, size }) => {
                       </Typography>
                       <Typography variant="body2">{reply.comment}</Typography>
                     </Box>
-                    <IconButton size="small" color="error" onClick={() => handleDeleteComment(reply.id)}>
+                    <IconButton disabled={adminAccess ? !adminAccess : reply.author.id !== session?.user.id} size="small" color="error" onClick={() => handleDeleteComment(reply.id)}>
                       <Delete fontSize="small" />
                     </IconButton>
                   </Box>
