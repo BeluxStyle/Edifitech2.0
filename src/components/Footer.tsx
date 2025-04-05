@@ -44,13 +44,6 @@ const ColorLevel = (role: Rol) => {
   }
 };
 
-// Colores por rol (usando colores del theme MUI)
-const roleColors: Record<string, string> = {
-  admin: 'primary.main',
-  user: 'secondary.main',
-  guest: 'grey.800',
-  default: 'primary.main',
-};
 
 const Footer: React.FC = () => {
   const { data: session } = useSession();
@@ -58,7 +51,6 @@ const Footer: React.FC = () => {
   const router = useRouter();
   const theme = useTheme();
 
-  const role = session?.user?.role?.name?.toLowerCase() || 'default';
   const bgColor = ColorLevel(user?.role) || 'primary';
 
   const handleClick = (text: string) => {
