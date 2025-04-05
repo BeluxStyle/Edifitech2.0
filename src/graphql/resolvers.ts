@@ -561,69 +561,7 @@ export const resolvers = {
 
 
     // Mutations existentes
-    createManual: async (_, { input }, { prisma }) => {
-      try {
-        const { name, url, description, referencias } = input;
     
-        // Validar que los campos obligatorios estén presentes
-        if (!name || !url || !referencias) {
-          throw new Error("El nombre, la URL y las referencias son obligatorios.");
-        }
-    
-        // Buscar o crear el documento asociado al manual
-        let documento = await prisma.document.findUnique({ where: { url } });
-        if (!documento) {
-          documento = await prisma.document.create({ data: { url } });
-        }
-    
-        // Extraer las referencias de productos usando regex (asumiendo formato "Ref: 12345")
-        const referenciasNumeros = referencias
-          .match(/Ref:\s*(\d+)/gi)
-          ?.map((match) => match.replace(/Ref:\s*/, "").trim()) || [];
-    
-        if (referenciasNumeros.length === 0) {
-          console.warn(`⚠️ No se encontraron referencias válidas en: "${referencias}"`);
-        }
-    
-        // Crear el manual
-        const manual = await prisma.manual.create({
-          data: {
-            name,
-            description: description || "", // La descripción es opcional
-            documentoId: documento.id,
-          },
-        });
-    
-        // Buscar productos por sus referencias
-        const productosExistentes = await prisma.producto.findMany({
-          where: { ref: { in: referenciasNumeros } },
-          select: { id: true, ref: true },
-        });
-    
-        console.log(`🔗 Productos encontrados en BD: ${productosExistentes.length}`);
-    
-        // Conectar los productos encontrados al manual
-        if (productosExistentes.length > 0) {
-          await prisma.manual.update({
-            where: { id: manual.id },
-            data: {
-              productos: {
-                connect: productosExistentes.map((producto) => ({ id: producto.id })),
-              },
-            },
-          });
-        }
-    
-        return {
-          success: true,
-          message: "Manual creado correctamente",
-          manual,
-        };
-      } catch (error) {
-        console.error("❌ Error al crear el manual:", error);
-        throw new Error("Error al crear el manual");
-      }
-    },
     createUser: async (
       _parent: unknown,
       { name, email, password }: { name: string; email: string; password: string },
@@ -1219,6 +1157,54 @@ export const resolvers = {
       return deleted !== null;
     }
     ,
+    createManual: async (_, { input }, { prisma }) => {
+      try {
+        const { name, url, description, productos } = input;
+    
+        // Validar que los campos obligatorios estén presentes
+        if (!name || !url) {
+          throw new Error("El nombre y la URL  son obligatorios.");
+        }
+    
+        // Buscar o crear el documento asociado al manual
+        let documento = await prisma.document.findUnique({ where: { url } });
+        if (!documento) {
+          documento = await prisma.document.create({ data: { url } });
+        }
+    
+    
+        // Crear el manual
+        const manual = await prisma.manual.create({
+          data: {
+            name,
+            description: description || "", // La descripción es opcional
+            documentoId: documento.id,
+          },
+        });
+    
+    
+        // Conectar los productos encontrados al manual
+        if (productos.length > 0) {
+          await prisma.manual.update({
+            where: { id: manual.id },
+            data: {
+              productos: {
+                connect: productos.map((producto) => ({ id: producto.id })),
+              },
+            },
+          });
+        }
+    
+        return {
+          success: true,
+          message: "Manual creado correctamente",
+          manual,
+        };
+      } catch (error) {
+        console.error("❌ Error al crear el manual:", error);
+        throw new Error("Error al crear el manual");
+      }
+    },
     updateManual: async (
       _parent: unknown,
       { id, input }: { id: string; input: { name: string; description: string; productos: Array<{ id: string }> } },

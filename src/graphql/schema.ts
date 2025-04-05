@@ -510,7 +510,7 @@ input ManualInput {
   name: String!
   url: String!
   description: String
-  referencias: String
+  productos: [ProductoInputManual!]!
 }
 
 input ProductoInputManual {

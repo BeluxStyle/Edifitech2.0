@@ -51,17 +51,14 @@ const CreateManualModal: React.FC<CreateManualModalProps> = ({
         return;
       }
 
-      // Convertir las referencias seleccionadas al formato "Ref: 12345"
-      const referencias = formData.selectedProducts
-        .map((product) => `Ref: ${product.ref}`)
-        .join(", ");
+      const formattedProductos = formData.selectedProducts.map((producto: { id: string }) => ({ id: producto.id }));
 
       // Llamar a la función onCreate con los datos del formulario
       onCreate({
         name: formData.name,
         url: formData.url,
         description: formData.description || "",
-        referencias,
+        productos: formattedProductos,
       });
 
       // Cerrar el modal después de enviar los datos
