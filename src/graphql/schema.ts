@@ -325,6 +325,7 @@ type Query {
   listSubcategories: [Subcategory!]!
   getComments(comunidadId: ID, edificioId: ID): [Comment!]
   listContactos: [Contacto!]!
+  countContactos: Int!
 }
 
 type Mutation {

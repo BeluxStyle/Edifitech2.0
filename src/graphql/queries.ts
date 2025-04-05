@@ -1074,6 +1074,7 @@ query Query {
   countCategories
   countBrands
   countInstalaciones
+  countContactos
 }`
 
 export const ADD_USER_TO_COMPANY = gql`

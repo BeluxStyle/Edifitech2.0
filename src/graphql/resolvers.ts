@@ -394,6 +394,10 @@ export const resolvers = {
       if (!context.session?.user?.id) throw new Error("no autenticado");
       return prisma.contacto.findMany({ include: { comunidad: true, edificio: { include: { comunidad:true}} } });
     },
+    countContactos: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      return prisma.contacto.count();
+    },
     // ... (añadir más queries según sea necesario)
   },
   Mutation: {

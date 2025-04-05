@@ -19,7 +19,7 @@ const DashboardPage = () => {
   const router = useRouter();
   const { data: dataCount, loading } = useQuery(COUNT_DATA);
   const [stats, setStats] = useState<any>(null);
-  const [news, setNews] = useState<any[]>([]);
+
 
   useEffect(() => {
     if (!loading && dataCount) {
@@ -36,7 +36,8 @@ const DashboardPage = () => {
         companies: dataCount.countCompanies,
         subscriptions: dataCount.countSubscriptions,
         documents: dataCount.countDocuments,
-        instalaciones: dataCount.countInstalaciones
+        instalaciones: dataCount.countInstalaciones,
+        contactos: dataCount.countContactos,
       });
     }
   }, [loading, dataCount]);
@@ -48,17 +49,6 @@ const DashboardPage = () => {
     }
   }, [session]);
 
-
-
-  useEffect(() => {
-
-    // Simulación de carga de datos
-
-    setNews([
-      { id: 1, title: 'Nuevo producto lanzado', link: '#' },
-      { id: 2, title: 'Mantenimiento programado', link: '#' },
-    ]);
-  }, []);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#F08042', '#FF7042', '#006042', '#FF5042', '#004042', '#FF3042', '#0F2042', '#AA1042', '#FF0042'];
   const colorHover = {
@@ -105,19 +95,6 @@ const DashboardPage = () => {
             {session?.user?.name}
           </Box>
         </Typography>
-
-        <Box style={{ marginBottom: 20 }}>
-          <Typography variant="h6">Noticias</Typography>
-          <ul>
-            {news.map((item) => (
-              <li key={item.id}>
-                <Link href={item.link} style={{ textDecoration: 'none', color: '#3f51b5' }}>
-                  {item.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Box>
 
         <Grid container spacing={1}>
           {filteredSections.map((section) => (
