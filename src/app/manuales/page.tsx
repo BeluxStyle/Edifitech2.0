@@ -47,7 +47,7 @@ export default function ManualsTable() {
     const [updateManual] = useMutation(UPDATE_MANUAL);
     const [deleteManual] = useMutation(DELETE_MANUAL);
     const [importManuals] = useMutation(IMPORT_MANUALS);
-    const { data, loading: loadingP, error: errorP } = useQuery(GET_PRODUCTS, {
+    const { data, loading: loadingP, error: errorP, refetch: refetchP } = useQuery(GET_PRODUCTS, {
         variables: { page: 1, pageSize: 10000 }, // Ajusta según sea necesario
     });
     const products = data?.listProductos.productos || [];
@@ -93,6 +93,9 @@ export default function ManualsTable() {
             .map((product: { ref: string }) => `Ref: ${product.ref}`)
             .join(", ");
       
+          // Formatear los productos para enviarlos como [{ id: "productoId" }]
+          const formattedProductos = productos.map((producto: { id: string }) => ({ id: producto.id }));
+      
           // Actualizar el manual con los nuevos datos
           await updateManual({
             variables: {
@@ -100,8 +103,7 @@ export default function ManualsTable() {
               input: {
                 name,
                 description,
-                referencias, // Guardar las referencias en formato de texto
-                
+                productos: formattedProductos, // Enviar los productos formateados
               },
             },
           });

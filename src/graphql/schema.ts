@@ -513,10 +513,13 @@ input ManualInput {
   referencias: String
 }
 
+input ProductoInputManual {
+  id: String!
+}
 input ManualUpdateInput {
   name: String!
   description: String
-  referencias: String
+  productos: [ProductoInputManual!]!
 }
 
 input DocumentInput {

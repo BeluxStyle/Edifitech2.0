@@ -356,6 +356,12 @@ export interface User {
     description?: string | null; // Opcional
     referencias: string;
   }
+
+  export interface ManualUpdateInput {
+    name: string;
+    description?: string | null; // Opcional
+    productos: Producto[]; // Cambiado a Producto[] para reflejar la relación
+  }
   
   export interface DocumentInput {
     url: string;

@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 import { Session } from "next-auth";
-import { ComunidadInput, ContactoInput, EdificioInput, ElementoInput, InstalacionInput, ManualInput, ProductoInput, DocumentInput } from "@/lib/types";
+import { ComunidadInput, ContactoInput, EdificioInput, ElementoInput, InstalacionInput, ManualInput, ManualUpdateInput, ProductoInput, DocumentInput } from "@/lib/types";
 import { create } from "domain";
 
 
@@ -1221,25 +1221,15 @@ export const resolvers = {
     ,
     updateManual: async (
       _parent: unknown,
-      { id, input }: { id: string; input: ManualInput },
+      { id, input }: { id: string; input: { name: string; description: string; productos: Array<{ id: string }> } },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
     
-      // Extraer las referencias de productos del input
-      const { name, description, referencias } = input;
+      const { name, description, productos } = input;
     
-      // Encontrar los IDs de los productos correspondientes a las referencias
-      const referenciasNumeros = referencias
-        .match(/Ref:\s*(\d+)/gi)
-        ?.map((match) => match.replace(/Ref:\s*/, "").trim()) || [];
-    
-      const productosExistentes = await prisma.producto.findMany({
-        where: { ref: { in: referenciasNumeros } },
-        select: { id: true },
-      });
-    
-      const productoIds = productosExistentes.map((producto) => producto.id);
+      // Extraer los IDs de los productos seleccionados
+      const productoIds = productos.map((producto) => ({ id: producto.id }));
     
       // Actualizar el manual
       return prisma.manual.update({
@@ -1248,7 +1238,7 @@ export const resolvers = {
           name,
           description,
           productos: {
-            set: productoIds.map((id) => ({ id })), // Conectar los productos seleccionados
+            set: productoIds, // Conectar los productos seleccionados
           },
         },
       });
