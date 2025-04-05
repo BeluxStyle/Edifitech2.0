@@ -129,14 +129,14 @@ export default function CompaniesTable() {
 
       console.log("Respuesta del servidor:", response); // 🔍 Imprimir la respuesta
 
-      setSnackbar({ children: "Usuario creado correctamente", severity: "success" });
+      setSnackbar({ children: "Empresa creada correctamente", severity: "success" });
       setOpenModal(false);
-      setNewCompany({ name: "" });
+      setNewCompany({ name: "", cif: "", phone: "", address: "", type: "" }); // Limpiar el formulario
       refetch(); // Recargar datos en la tabla
     } catch (error: any) {
-      console.error("Error al crear usuario:", error);
+      console.error("Error al crear empresa:", error);
       console.log("Detalles del error:", error.networkError?.result?.errors || error.message);
-      setSnackbar({ children: "Error al crear usuario", severity: "error" });
+      setSnackbar({ children: "Error al crear empresa", severity: "error" });
     }
   };
 
