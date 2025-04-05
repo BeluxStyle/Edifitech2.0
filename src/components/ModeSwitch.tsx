@@ -13,28 +13,20 @@ export default function ModeSwitch() {
     return null;
   }
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        mt: 1,
-        p: 1,
-      }}
-    >
+   
       <FormControl>
-        <InputLabel id="mode-select-label">Tema</InputLabel>
         <Select
+          sx={{ minWidth: 120, height: 30, color: 'white' }}
           labelId="mode-select-label"
           id="mode-select"
           value={mode}
           onChange={(event) => setMode(event.target.value as typeof mode)}
-          label="Theme"
         >
           <MenuItem value="system">System</MenuItem>
           <MenuItem value="light">Light</MenuItem>
           <MenuItem value="dark">Dark</MenuItem>
         </Select>
       </FormControl>
-    </Box>
+   
   );
 }

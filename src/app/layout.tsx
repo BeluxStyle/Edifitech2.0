@@ -10,9 +10,11 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from '@/theme';
 import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
-import ModeSwitch from '@/components/ModeSwitch';
+
 import AProvider from '@/providers/ApolloProvider';
 import BreadcrumbsNav from "@/components/BreadcrumsNav"
+import CookieConsent from "@/components/CookieConsent";
+import Footer from "@/components/Footer"
 
 
 
@@ -33,8 +35,10 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
                   <CssBaseline />
                   
                   {props.children}
+                  <CookieConsent />
+                  
                 </PageContainer>
-                <ModeSwitch />
+                <Footer />
               </ThemeProvider>
             </AProvider>
           </SessionProvider>

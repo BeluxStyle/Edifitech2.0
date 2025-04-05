@@ -1,10 +1,8 @@
 'use client'
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, useTheme } from '@mui/material';
 import { useSession, signOut } from 'next-auth/react';
-import { DefaultSession } from 'next-auth';
-import Link from 'next/link';
-import { GoogleIcon, FacebookIcon, SitemarkIcon, EdifitechIcon } from './CustomIcons';
+import { EdifitechIcon } from './CustomIcons';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -16,11 +14,20 @@ import { Rol } from '@/lib/types';
 import { useRouter } from "next/navigation"; // Correcto para App Router
 
 
-const pages = ['Dashboard','Comunidades', 'Productos','Manuales', 'Ayuda'];
+const pages = ['Dashboard','Comunidades', 'Productos','Manuales', 'Acerca de', 'Política de Privacidad', 'Terminos y Condiciones'];
 const settings = ['Perfil', 'Configuración', 'Mensajes', 'Logout'];
+
+function transformarTexto(texto) {
+  return texto
+    .normalize("NFD")                     // Separa letras y acentos
+    .replace(/[\u0300-\u036f]/g, "")     // Elimina acentos
+    .replace(/\s+/g, "_");               // Reemplaza espacios por _
+}
+
 
 const Navbar: React.FC = () => {
   const router = useRouter();
+  const theme = useTheme();
   const { data: session  } = useSession();
   const user = session?.user as unknown as { name?: string; email?: string; image?: string; role?: Rol };
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -43,7 +50,8 @@ const Navbar: React.FC = () => {
 
   function handleClickNavMenu(page: string) {
     handleCloseNavMenu();
-    router.push(`/${page.toLowerCase()}`);
+    let pageGo = transformarTexto(page);
+    router.push(`/${pageGo.toLowerCase()}`);
   }
 
 
