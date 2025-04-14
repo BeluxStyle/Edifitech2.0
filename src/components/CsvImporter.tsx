@@ -13,9 +13,7 @@ import {
   Typography,
   CircularProgress,
 } from "@mui/material";
-import { useQuery } from "@apollo/client";
-import { GET_BRANDS, GET_CATEGORIES, GET_SUBCATEGORIES } from "@/graphql/queries"; // Importa tus queries GraphQL
-import { Brand, Category, Subcategory } from "@/lib/types";
+import { useBrands, useSubcategories, Brand, Subcategory } from "@edifitech-graphql/index";
 
 interface CsvImporterProps {
   fields: { label: string; key: string; required?: boolean }[]; // Campos esperados en la base de datos
@@ -32,14 +30,8 @@ const CsvImporter: React.FC<CsvImporterProps> = ({ fields, onImport }) => {
   const [selectedCategory, setSelectedCategory] = useState<Subcategory>(null); // Categoría seleccionada
 
   // Consultas para obtener marcas y categorías
-  const { data: brandsData, loading: isBrandsLoading, error: brandsError } = useQuery(GET_BRANDS);
-  const { data: categoriesData, loading: isCategoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES);
-  const { data: subcategoriesData, loading: isSubCategoriesLoading, error: subcategoriesError } = useQuery(GET_SUBCATEGORIES);
-  // Extraer las marcas y categorías de los resultados de las queries
-  const brands = brandsData?.listBrands || [];
-  const subcategories =
-    subcategoriesData?.listSubcategories ||
-    [];
+  const { brands, loading: brandsLoading, error: brandsError } = useBrands()
+  const { subcategories, loading: subcategoriesLoading, error: subcategoriesError} = useSubcategories()
 
   // Leer el archivo CSV
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,12 +113,12 @@ const CsvImporter: React.FC<CsvImporterProps> = ({ fields, onImport }) => {
   };
 
   // Mostrar un spinner mientras se cargan las marcas o categorías
-  if (isBrandsLoading || isCategoriesLoading) {
+  if (brandsLoading || subcategoriesLoading) {
     return <CircularProgress />;
   }
 
   // Mostrar errores si ocurren
-  if (brandsError || categoriesError) {
+  if (brandsError || subcategoriesError) {
     return <Typography color="error">Error al cargar marcas o categorías.</Typography>;
   }
 

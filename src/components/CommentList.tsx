@@ -1,13 +1,11 @@
-import { IconButton, Tooltip, Box, Badge, Avatar, Typography, Modal, Button, TextField, Collapse } from "@mui/material";
-import { ThumbUp, Reply, Delete } from "@mui/icons-material";
-import { useState } from "react";
-import { useMutation } from "@apollo/client";
-import { ADD_REACTION, REPLY_COMMENT, DELETE_COMMENT } from "@/graphql/queries";
+import { CommentInput, ReactionInput, useCommentHandlers } from "@edifitech-graphql/index";
+import { Delete, Reply, ThumbUp } from "@mui/icons-material";
+import { Avatar, Badge, Box, Button, Collapse, IconButton, Modal, TextField, Tooltip, Typography } from "@mui/material";
 import moment from "moment";
 import { useSession } from 'next-auth/react';
+import { useEffect, useMemo, useState } from "react";
+import useConfirm from "./../util/useConfirm";
 import ConfirmDialog from "./ConfirmDialog";
-import useConfirm from "./../util/useConfirm"
-import { useEffect, useMemo } from "react";
 
 
 
@@ -26,65 +24,22 @@ const CommentsList = ({ comments, size }) => {
   const { confirmData, showConfirm, closeConfirm } = useConfirm();
   const [openTooltip, setOpenTooltip] = useState(null);
   const [modalReply, setModalReply] = useState(false);
-  const [newReply, setNewReply] = useState("");
+  const [newComment, setNewComment] = useState<CommentInput>({ comment: "", parentId: "" });
   const [commentReply, setCommentReply] = useState(null);
+  const [newReaction, setNewReaction] = useState<ReactionInput>({ commentId: "", type: "" })
   const [expandedComments, setExpandedComments] = useState({});
   const [role, setRole] = useState(0);
-      useEffect(() => {
-          if (session) {
-              setRole(session.user?.role?.level || 0);
-          }
-      }, [session]);
-
-      const addAccess = useMemo(() => role >= 2, [role]);
-      const adminAccess = useMemo(() => role >= 99, [role]);
-
-  const [addReactionMutation] = useMutation(ADD_REACTION, {
-    refetchQueries: ["GetComunidad", "GetEdificio"], // Para actualizar la UI después de reaccionar
-  });
-  const [replyComment] = useMutation(REPLY_COMMENT, {
-    refetchQueries: ["GetComunidad", "GetEdificio"], // Para actualizar la UI después de reaccionar
-  });
-
-  const [deleteComment] = useMutation(DELETE_COMMENT, {
-    refetchQueries: ["GetComunidad", "GetEdificio"], // Para actualizar la UI después de reaccionar
-  });
-
-  const handleReaction = async (commentId, reactionType) => {
-    try {
-      await addReactionMutation({
-        variables: { commentId, type: reactionType }
-      });
-    } catch (error) {
-      console.error("Error al reaccionar:", error);
+  useEffect(() => {
+    if (session) {
+      setRole(session.user?.role?.level || 0);
     }
-  };
+  }, [session]);
 
-  const handleDeleteComment = async (commentId) => {
-    console.log("Comentario Borrado", commentId)
-    try {
-      await deleteComment({
-        variables: { id: commentId }
-      });
-      closeConfirm();
-    } catch (error) {
-      console.error("Error al borrar:", error);
-    }
-  }
+  const addAccess = useMemo(() => role >= 2, [role]);
+  const adminAccess = useMemo(() => role >= 99, [role]);
 
-  const handleReply = async () => {
-    try {
-      console.log("Respuesta comentario:", newReply);
+  const { handleDelete, handlePost, handleReply, handleReaction } = useCommentHandlers()
 
-      await replyComment({
-        variables: { authorId: session?.user?.id, parentId: commentReply?.id, comment: newReply }
-      });
-      setModalReply(false);
-      setNewReply("")
-    } catch (error) {
-      console.error("Error al reaccionar:", error);
-    }
-  };
 
   const toggleExpandReplies = (commentId) => {
     setExpandedComments((prev) => ({
@@ -92,6 +47,16 @@ const CommentsList = ({ comments, size }) => {
       [commentId]: !prev[commentId]
     }));
   };
+
+   useEffect(() => {
+    if(newReaction.commentId && newReaction.type != "") {
+      handleReaction(newReaction, {})
+    }
+    
+    }, [newReaction]);
+  
+   
+ 
 
 
   const sortedComments = [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -137,7 +102,7 @@ const CommentsList = ({ comments, size }) => {
                     <Box sx={{ display: "flex", gap: 0.5 }}>
                       {reactionTypes.map(({ emoji, type }) => (
                         <Badge key={type} badgeContent={comment.reactions.filter(r => r.type === type).length} overlap="circular" color="primary">
-                          <IconButton disabled={!addAccess} sx={{ fontSize: 20 }} onClick={() => handleReaction(comment.id, type)}>
+                          <IconButton disabled={!addAccess} sx={{ fontSize: 20 }} onClick={() => { setNewReaction({ commentId: comment.id, type: type })}}>
                             {emoji}
                           </IconButton>
                         </Badge>
@@ -156,7 +121,7 @@ const CommentsList = ({ comments, size }) => {
                   </Badge>
                 </Tooltip>
 
-                <IconButton disabled={adminAccess ? !adminAccess : comment.author.id !== session?.user.id} size="small" color="error" onClick={() => showConfirm("Eliminar Comentario", "¿Seguro que quieres eliminarlo?", () => handleDeleteComment(comment.id))}>
+                <IconButton disabled={adminAccess ? !adminAccess : comment.author.id !== session?.user.id} size="small" color="error" onClick={() => handleDelete(comment.id)}>
                   <Delete fontSize="small" />
                 </IconButton>
               </Box>
@@ -174,7 +139,7 @@ const CommentsList = ({ comments, size }) => {
                       </Typography>
                       <Typography variant="body2">{reply.comment}</Typography>
                     </Box>
-                    <IconButton disabled={adminAccess ? !adminAccess : reply.author.id !== session?.user.id} size="small" color="error" onClick={() => handleDeleteComment(reply.id)}>
+                    <IconButton disabled={adminAccess ? !adminAccess : reply.author.id !== session?.user.id} size="small" color="error" onClick={() => handleDelete(reply.id)}>
                       <Delete fontSize="small" />
                     </IconButton>
                   </Box>
@@ -194,10 +159,17 @@ const CommentsList = ({ comments, size }) => {
             multiline
             rows={3}
             sx={{ mt: 2 }}
-            value={newReply}
-            onChange={(e) => setNewReply(e.target.value)}
+            value={newComment.comment}
+            onChange={(e) => setNewComment({ comment: e.target.value, parentId: commentReply.id })}
           />
-          <Button variant="outlined" sx={{ mt: 2 }} onClick={handleReply}>Enviar</Button>
+          <Button variant="outlined" sx={{ mt: 2 }}
+            onClick={() =>
+              handleReply(newComment, {
+                onSuccess() {
+                  setModalReply(false);
+                  setNewComment({comment: "", parentId:""})
+                }
+              })}>Enviar</Button>
         </Box>
       </Modal>
       <ConfirmDialog

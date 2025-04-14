@@ -15,11 +15,18 @@ import AProvider from '@/providers/ApolloProvider';
 import BreadcrumbsNav from "@/components/BreadcrumsNav"
 import CookieConsent from "@/components/CookieConsent";
 import Footer from "@/components/Footer"
+import { ToastProvider } from '@/providers/ToastProvider';
+import { ConfirmDialogProvider } from '@/providers/ConfirmDialogProvider';
+
 
 
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
+
   const session = await getServerSession(authOptions);
+ 
+ 
+
   return (
     <html lang="es" suppressHydrationWarning>
       <body>
@@ -29,15 +36,19 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
             <AProvider>
               <ThemeProvider theme={theme}>
                 <Navbar />
-                <PageContainer>
-                  <BreadcrumbsNav/>
-                  {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
-                  <CssBaseline />
-                  
-                  {props.children}
-                  <CookieConsent />
-                  
-                </PageContainer>
+                <ToastProvider>
+                  <PageContainer>
+                    <ConfirmDialogProvider>
+                      <BreadcrumbsNav />
+                      {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
+                      <CssBaseline />
+
+                      {props.children}
+
+                      <CookieConsent />
+                    </ConfirmDialogProvider>
+                  </PageContainer>
+                </ToastProvider>
                 <Footer />
               </ThemeProvider>
             </AProvider>

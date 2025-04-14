@@ -1,29 +1,27 @@
 "use client";
-import * as React from 'react';
+import PageContainer from '@/components/PageContainer';
+import { CircularProgress } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import MuiCard from '@mui/material/Card';
 import Checkbox from '@mui/material/Checkbox';
 import CssBaseline from '@mui/material/CssBaseline';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Divider from '@mui/material/Divider';
-import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormLabel from '@mui/material/FormLabel';
 import Link from '@mui/material/Link';
+import Stack from '@mui/material/Stack';
+import { styled } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import Stack from '@mui/material/Stack';
-import MuiCard from '@mui/material/Card';
-import { styled } from '@mui/material/styles';
+import { getSession, signIn, useSession } from 'next-auth/react';
+import { redirect, useRouter } from 'next/navigation'; // Agregar importación
+import * as React from 'react';
+import { useState } from 'react';
+import { EdifitechIcon, GoogleIcon } from '../../../components/CustomIcons';
 import ForgotPassword from '../../../components/ForgotPassword';
 import ColorModeSelect from '../../../shared-theme/ColorModeSelect';
-import { GoogleIcon, FacebookIcon, SitemarkIcon, EdifitechIcon } from '../../../components/CustomIcons';
-import { signIn, getSession, signOut } from 'next-auth/react';
-import { useState, useEffect } from 'react';
-import { CircularProgress } from '@mui/material';
-import { useRouter } from 'next/navigation'; // Agregar importación
-import { useSession } from 'next-auth/react';
-import PageContainer from '@/components/PageContainer';
-import { redirect } from 'next/navigation';
 
 
 

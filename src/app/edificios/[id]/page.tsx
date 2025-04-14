@@ -1,14 +1,11 @@
 "use client";
 
 import { useParams } from "next/navigation";
-
 import { EdifitechLoading } from "@/components/CustomIcons";
-import PageContainer from "@/components/PageContainer";
-import { GET_EDIFICIO } from "@/graphql/queries";
-import { useQuery } from "@apollo/client";
-import { Box, Typography } from "@mui/material";
-
 import DetalleEdificio from "@/components/edificioDetalle";
+import PageContainer from "@/components/PageContainer";
+import { useEdificio } from "@edifitech-graphql/index";
+import { Box, Typography } from "@mui/material";
 
 
 
@@ -18,8 +15,7 @@ export default function EdificioPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const { data, loading, error } = useQuery(GET_EDIFICIO, { variables: { id } , fetchPolicy: "cache-and-network" });
-  //const { data: productData, loading: productLoading, error: productError } = useQuery(GET_PRODUCTS);
+  const { edificio, loading, error, refetch } = useEdificio(id)
 
   if (loading) {
     return (
@@ -44,13 +40,13 @@ export default function EdificioPage() {
     );
   }
   
-  if (error || !data?.getEdificio) return <Typography variant="h6" color="error">Edificio no encontrado</Typography>;
+  if (error || !edificio) return <Typography variant="h6" color="error">Edificio no encontrado</Typography>;
 
 
   return (
     <PageContainer>
     <Box sx={{ p: 1}}>    
-      <DetalleEdificio edificio={data.getEdificio} ></DetalleEdificio>
+      <DetalleEdificio edificio={edificio} ></DetalleEdificio>
     </Box>
     </PageContainer>
   );

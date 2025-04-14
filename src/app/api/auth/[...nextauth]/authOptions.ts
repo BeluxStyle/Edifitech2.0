@@ -124,8 +124,8 @@ export const authOptions = {
     
       return session;
     },
-    async redirect({ url, baseUrl }) {
+    /*async redirect({ url, baseUrl }) {
       return `${baseUrl}/`; // Redirigir a la página principal tras el login
-    },
+    },*/
   }
 };

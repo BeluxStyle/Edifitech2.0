@@ -2,8 +2,7 @@
 
 import { EdifitechLoading } from "@/components/CustomIcons";
 import PageContainer from "@/components/PageContainer";
-import { GET_COMUNIDAD } from "@/graphql/queries";
-import { useQuery } from "@apollo/client";
+import { useComunidad } from "@edifitech-graphql/index";
 import { Box, Typography } from "@mui/material";
 import { useParams } from "next/navigation";
 
@@ -17,7 +16,7 @@ export default function ComunidadPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const { data, loading, error } = useQuery(GET_COMUNIDAD, { variables: { id }  ,  fetchPolicy: "cache-and-network" });
+  const { comunidad, loading, error, refetch } = useComunidad(id)
  
 
   if (loading) {
@@ -43,13 +42,13 @@ export default function ComunidadPage() {
     );
   }
   
-  if (error || !data?.getComunidad) return <Typography variant="h6" color="error">Comunidad no encontrada</Typography>;
+  if (error || !comunidad) return <Typography variant="h6" color="error">Comunidad no encontrada</Typography>;
 
 
   return (
     <PageContainer>
     <Box sx={{ p: 1}}>    
-      <DetalleComunidad comunidad={data.getComunidad} ></DetalleComunidad>
+      <DetalleComunidad comunidad={comunidad} ></DetalleComunidad>
     </Box>
     </PageContainer>
   );

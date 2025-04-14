@@ -1,26 +1,35 @@
-import { useState } from "react";
-import useConfirm from "./../util/useConfirm"
-import ConfirmDialog from "./ConfirmDialog";
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { useEffect, useMemo } from "react";
-import { useSession } from "next-auth/react";
-import { copyRowToClipboard, shareRowOnWhatsApp } from "./../util/utils";
-import {
-    Modal, Box, Typography, TableContainer, Table, TableBody, TableRow, TableCell,
-    Button, TextField, IconButton, Select, MenuItem, FormControl, InputLabel, Snackbar, Alert
-} from "@mui/material";
+import { toast } from "@edifitech-graphql/index";
 import { Delete, Search } from "@mui/icons-material";
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import {
+    Box,
+    Button,
+    FormControl,
+    IconButton,
+    InputLabel,
+    MenuItem,
+    Modal,
+    Select,
+    Table, TableBody,
+    TableCell,
+    TableContainer,
+    TableRow,
+    TextField,
+    Typography
+} from "@mui/material";
+import { useSession } from "next-auth/react";
+import { useEffect, useMemo, useState } from "react";
+import { copyRowToClipboard, shareRowOnWhatsApp } from "./../util/utils";
 const ContactosModal = ({ modalOpen, setModalOpen, title, contactos, agregarContacto, deleteContacto }) => {
 
-    const { confirmData, showConfirm, closeConfirm } = useConfirm();
     const [nuevoContacto, setNuevoContacto] = useState({
         name: "",
         type: "",
         phone: "",
         location: "",
     });
-    const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
+    
     const { data: session } = useSession();
     const [role, setRole] = useState(0);
           useEffect(() => {
@@ -35,16 +44,13 @@ const ContactosModal = ({ modalOpen, setModalOpen, title, contactos, agregarCont
     // Estado para búsqueda de contactos
     const [searchTerm, setSearchTerm] = useState("");
 
-    const handleCloseSnackbar = () => setSnackbar(null);
-
-
     const handleChange = (e) => {
         setNuevoContacto({ ...nuevoContacto, [e.target.name]: e.target.value });
     };
 
     const handleAgregarContacto = () => {
         if (!nuevoContacto.name || !nuevoContacto.phone) {
-            setSnackbar({children: "El nombre y el teléfono son obligatorios", severity: "error" });
+            toast("El nombre y el teléfono son obligatorios","error");
             return;
         }
 
@@ -54,8 +60,6 @@ const ContactosModal = ({ modalOpen, setModalOpen, title, contactos, agregarCont
 
     const handleDeleteContacto = (contactoId) => {
         deleteContacto(contactoId)
-        setSnackbar({children: "Contacto Borrado", severity: "success" });
-        closeConfirm();
     }
 
     // Filtrar contactos en base a la búsqueda
@@ -101,7 +105,7 @@ const ContactosModal = ({ modalOpen, setModalOpen, title, contactos, agregarCont
                                         <TableCell>{contacto.location}</TableCell>
                                         <TableCell>
                                             <IconButton disabled={!addAccess}size="small" color="primary"
-                                                onClick={() => {copyRowToClipboard(contacto), setSnackbar({children: `Contacto ${contacto.name} Copiado`, severity: "success" })} }
+                                                onClick={() => {copyRowToClipboard(contacto), toast(`Contacto ${contacto.name} Copiado`,"success")} }
                                             >
                                                 <ContentCopyIcon/></IconButton>
                                         </TableCell>
@@ -112,7 +116,7 @@ const ContactosModal = ({ modalOpen, setModalOpen, title, contactos, agregarCont
                                                 <WhatsAppIcon/>
                                                 </IconButton>
                                         </TableCell>
-                                        <TableCell align="right"><IconButton disabled={!hasAccess} size="small" color="error" onClick={() => {showConfirm("Eliminar Contacto", "¿Seguro que quieres eliminar?", () => handleDeleteContacto(contacto.id))}}><Delete /></IconButton></TableCell>
+                                        <TableCell align="right"><IconButton disabled={!hasAccess} size="small" color="error" onClick={() => handleDeleteContacto(contacto.id)}><Delete /></IconButton></TableCell>
                                     </TableRow>
                                 ))
                             ) : (
@@ -158,23 +162,6 @@ const ContactosModal = ({ modalOpen, setModalOpen, title, contactos, agregarCont
             </Box>
 
         </Modal>
-
-            <ConfirmDialog
-                open={confirmData.open}
-                onClose={closeConfirm}
-                onConfirm={confirmData.onConfirm}
-                title={confirmData.title}
-                message={confirmData.message}
-            />
-            {/* Notificaciones */}
-            {!!snackbar && (
-                <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={handleCloseSnackbar} autoHideDuration={6000}>
-                    <Alert severity={snackbar.severity} onClose={handleCloseSnackbar}>
-                        {snackbar.children}
-                    </Alert>
-                </Snackbar>
-            )}
-
         </>
 
     );

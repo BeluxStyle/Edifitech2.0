@@ -1,19 +1,19 @@
 'use client';
 import CsvImporter from "@/components/CsvImporter";
 import { EdifitechLoading } from "@/components/CustomIcons";
+import FilterModal from '@/components/FilterModal';
 import PageContainer from '@/components/PageContainer';
-import { CREATE_IMAGE, CREATE_PRODUCTO, DELETE_PRODUCTO, GET_BRANDS, GET_CATEGORIES, GET_IMAGES, GET_PRODUCTS, GET_SUBCATEGORIES, IMPORT_PRODUCTS, UPDATE_PRODUCTO } from "@/graphql/queries";
-import { useMutation, useQuery } from "@apollo/client";
-import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
+import SearchbarTools from "@/components/SearchbarTools";
+import { toast, useBrands, useCategories, useImageHandlers, useImages, useProductHandlers, useProducts, useSubcategories } from "@edifitech-graphql/index";
+import { Description } from '@mui/icons-material';
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Description } from "@mui/icons-material";
-import { Alert, Box, Button, Badge, Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Modal, Select, Snackbar, TextField, Typography } from "@mui/material";
+import { Alert, Badge, Box, Button, Dialog, DialogContent, DialogTitle, IconButton, MenuItem, Modal, Select, TextField, Typography } from "@mui/material";
 import ImageList from '@mui/material/ImageList';
 import ImageListItem from '@mui/material/ImageListItem';
 import { styled } from "@mui/material/styles";
 import Tooltip, { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
-import { DataGrid, GridAddIcon, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import moment from 'moment';
 import "moment/locale/es";
@@ -23,21 +23,6 @@ import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from "react";
 moment().locale('es');
 
-function useProductos(searchTerm: string, paginationModel: { page: number, pageSize: number }) {
-  let page = paginationModel.page
-  let pageSize = paginationModel.pageSize
-  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
-    variables: { searchTerm, page: page + 1, pageSize }, fetchPolicy: "cache-and-network"
-  });
-
-  return {
-    products: data?.listProductos.productos || [],
-    totalCount: data?.listProductos.totalCount,
-    loading,
-    error,
-    refetch
-  };
-}
 
 export default function ProductosTable() {
 
@@ -46,21 +31,23 @@ export default function ProductosTable() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<{ [key: string]: string }>({});
-
-
-  const { data: categoriesData } = useQuery(GET_CATEGORIES, { fetchPolicy: "cache-first" });
-  const { data: subcategoriesData } = useQuery(GET_SUBCATEGORIES, { fetchPolicy: "cache-first" });
-  const { data: imagesData } = useQuery(GET_IMAGES, { fetchPolicy: "cache-first" });
-  const { data: brandsData } = useQuery(GET_BRANDS, { fetchPolicy: "cache-first" });
-
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0, // Página inicial (0-based)
     pageSize: 20, // Tamaño de página predeterminado
   });
+  const [openFilterModal, setOpenFilterModal] = useState(false);
+  const [filters, setFilters] = useState({ categoryId: '', brandId: '' });
 
-
-
-  const { products, totalCount, loading, error, refetch } = useProductos(searchTerm, paginationModel);
+  // Lógica de productos
+  const { handleDelete, handleUpdate, handleCreate, handleImport } = useProductHandlers();
+  const { products, totalCount, loading, error, refetch } = useProducts(searchTerm, paginationModel, filters);
+  // fin de lógica de productos
+  //Lógica adicionales
+  const { images } = useImages()
+  const { handleCreate: handleCreateImage } = useImageHandlers();
+  const { brands } = useBrands()
+  const { categories } = useCategories()
+  const { subcategories } = useSubcategories()
 
   const isMounted = useRef(true);
   const { data: session } = useSession();
@@ -82,15 +69,6 @@ export default function ProductosTable() {
   }, [session, role]);
 
   const hasAccess = useMemo(() => role >= 5, [role]);
-
-
-
-  const [createProducto] = useMutation(CREATE_PRODUCTO, { refetchQueries: ["ListProductos"], });
-  const [updateProducto] = useMutation(UPDATE_PRODUCTO, { refetchQueries: ["ListProductos"], });
-  const [deleteProducto] = useMutation(DELETE_PRODUCTO, { refetchQueries: ["ListProductos"], });
-  const [importProducts] = useMutation(IMPORT_PRODUCTS, { refetchQueries: ["ListProductos"], });
-  const [createImage] = useMutation(CREATE_IMAGE, { refetchQueries: ["ListProductos", "ListImages"], });
-
   const [openModal, setOpenModal] = useState(false);
   const [openCsvModal, setOpenCsvModal] = useState(false);
 
@@ -116,24 +94,11 @@ export default function ProductosTable() {
     console.error("Error en la consulta de productos:", error);
   }
 
-
   const [errors, setErrors] = useState({
     ref: "",
     ean: "",
     price: "",
   });
-  const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
-
-  const handleCloseSnackbar = () => setSnackbar(null);
-
-
-
-
-  const categories = categoriesData?.listCategories || [];
-  const subcategories = subcategoriesData?.listSubcategories || [];
-  const images = imagesData?.listImages || [];
-  const brands = brandsData?.listBrands || [];
-
 
 
   const StyledTooltip = styled(({ className, ...props }: TooltipProps) => (
@@ -243,123 +208,10 @@ export default function ProductosTable() {
   };
 
   const handleProcessRowUpdateError = React.useCallback((error: Error) => {
-    setSnackbar({ children: error.message, severity: "error" });
+    toast(error.message, "error");
     console.error("Error al procesar la actualización de fila:", error);
   }, []);
 
-
-  const handleEditCell = async (params: any) => {
-    try {
-      console.log("params: ", params)
-      const { id, ref, price, ean, descripcion, brand, subcategory, image } = params;
-
-      // Validaciones antes de enviar
-      if (!ref || ref.trim() === "") {
-        setSnackbar({
-          children: "La referencia no puede estar vacía.",
-          severity: "error"
-        });
-        return params;
-      }
-      if (ean && (typeof ean !== "string" || !/^\d{13}$/.test(ean.trim()))) {
-        setSnackbar({
-          children: "El EAN debe contener exactamente 13 dígitos numéricos o estar vacío.",
-          severity: "error",
-        });
-        return params;
-      }
-      const priceValue = parseFloat(price);
-      if (isNaN(priceValue) || priceValue < 0) {
-        setSnackbar({
-          children: "El precio debe sewr un numero válido y no negativo.",
-          severity: "error"
-        });
-        return params;
-      }
-
-      // Si pasa las validaciones, enviamos la actualización
-      await updateProducto({
-        variables: {
-          id,
-          input: {
-            ref,
-            ean,
-            price: priceValue,
-            descripcion,
-            brandId: brand?.id ? brand.id : null,
-            subcategoryId: subcategory?.id ? subcategory.id : null,
-            imageId: image?.id ? image.id : null
-          }
-        }
-      });
-
-      setSnackbar({
-        children: `Producto ${ref} actualizado correctamente`,
-        severity: "success"
-      });
-
-      refetch();
-      return params;
-
-    } catch (error: any) {
-      console.error("Error en la actualización:", error);
-
-      // Mostrar el error en el Snackbar
-      setSnackbar({
-        children: error.message || "Error al actualizar producto",
-        severity: "error"
-      });
-
-      return params.row;
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteProducto({ variables: { id } });
-      setSnackbar({ children: "Producto eliminado correctamente", severity: "success" });
-      refetch();
-    } catch (error) {
-      console.error("Error en la eliminación:", error);
-      setSnackbar({ children: "Error al eliminar Producto", severity: "error" });
-    }
-  };
-
-  const handleCreate = async () => {
-    try {
-      let imageId = null;
-
-      // Si hay URL de imagen, primero la creamos
-      if (newProducto.imageUrl) {
-        const imageResponse = await createImage({
-          variables: { input: { url: newProducto.imageUrl } },
-        });
-        imageId = imageResponse.data.createImage.id;
-      }
-
-      const variables: any = {
-        input: {
-          ref: newProducto.ref,
-          ean: newProducto.ean,
-          price: typeof newProducto.price === 'string' ? parseFloat(newProducto.price) || 0 : newProducto.price || 0,
-          descripcion: newProducto.descripcion,
-          brandId: newProducto.brandId || null,
-          subcategoryId: newProducto.subcategoryId || null,
-          imageId: imageId, // Asigna la imagen creada al producto
-        },
-      };
-
-      await createProducto({ variables });
-
-      setSnackbar({ children: "Producto creado correctamente", severity: "success" });
-      setOpenModal(false);
-      setNewProducto({ ref: "", ean: "", descripcion: "", price: "", imageUrl: "", brandId: "", subcategoryId: "" });
-      refetch();
-    } catch (error: any) {
-      console.error("Error al crear producto:", error);
-      setSnackbar({ children: "Error al crear producto", severity: "error" });
-    }
-  };
 
   const handleCategoryChange = (rowId, categoryId) => {
     setSelectedCategories((prev) => ({
@@ -418,7 +270,11 @@ export default function ProductosTable() {
                 justifyContent: "center",
               }}
             >
-              <AddPhotoAlternateIcon fontSize="large" />
+              {imageUrl ? (
+                <img src={imageUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <AddPhotoAlternateIcon fontSize="large" />
+              )}
             </IconButton>
 
             <TextField
@@ -453,12 +309,15 @@ export default function ProductosTable() {
 
 
     const handleUpload = async (url) => {
-      console.log("URL de la nueva imagen:", url);
       let image = null
-      const imageResponse = await createImage({
-        variables: { input: { url: url } },
-      });
-      image = imageResponse.data.createImage;
+      let newImage = { url }
+      const imageResponse = await handleCreateImage(
+        newImage, {
+        onSuccess: () => { },
+        onError: () => { }
+      }
+      )
+      image = imageResponse;
       params.api.setEditCellValue({ id: params.id, field: "image", value: image });
       setOpen(false);
     };
@@ -680,35 +539,17 @@ export default function ProductosTable() {
     <PageContainer>
       <Box sx={{ flex: 1, flexDirection: 'column' }}>
         <Typography variant='h4'>Listado de Productos</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'right', gap: 1, mb: 4 }}>
-          <TextField
-            variant="outlined"
-            sx={{ width: "100%" }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlined />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-
-          />
-          <Button variant="contained" onClick={() => refetch()} sx={{ width: 30, color: 'white', bgcolor: 'primary.main' }}>
-            <Refresh />
-          </Button>
-          <Button variant="contained" disabled={!hasAccess} onClick={() => setOpenModal(true)} sx={{ width: 130, color: 'white', bgcolor: 'primary.main' }}>
-            <GridAddIcon /> Nuevo
-          </Button>
-          <Button variant="contained" disabled={!hasAccess} onClick={() => setOpenCsvModal(true)} sx={{ width: 200, color: 'white', bgcolor: 'primary.main' }}>
-            <FileUpload /> Importar CSV
-          </Button>
-        </Box>
-
-
+        <SearchbarTools
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onAdd={() => setOpenModal(true)}
+          onRefresh={() => refetch()}
+          onImport={() => setOpenCsvModal(true)}
+          showImport={hasAccess}
+          onFilter={() => setOpenFilterModal(true)}
+          loading={loading}
+          type='Productos'
+        />
         {/* DataGrid */}
         <DataGrid
           localeText={esES.components.MuiDataGrid.defaultProps.localeText}
@@ -723,7 +564,7 @@ export default function ProductosTable() {
           rowCount={totalCount} // Total de registros desde el backend
           editMode="row"
           getRowHeight={() => 60}
-          processRowUpdate={handleEditCell}
+          processRowUpdate={handleUpdate}
           onProcessRowUpdateError={handleProcessRowUpdateError}
           onRowEditStop={(params, event) => {
             if (params.reason === GridRowEditStopReasons.rowFocusOut) event.defaultMuiPrevented = true;
@@ -823,7 +664,27 @@ export default function ProductosTable() {
               ))}
             </Select>
 
-            <Button variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
+            <Button variant="contained"
+              onClick={() =>
+                handleCreate(newProducto, {
+                  onSuccess: () => {
+                    setOpenModal(false);
+                    setNewProducto({
+                      ref: '',
+                      ean: '',
+                      descripcion: '',
+                      price: '',
+                      imageUrl: '',
+                      brandId: '',
+                      subcategoryId: '',
+                    });
+                  },
+                  onError: () => {
+                    // Podés hacer algo si falla
+                  },
+                })
+              }
+              sx={{ mt: 2 }}>
               Crear
             </Button>
           </Box>
@@ -864,21 +725,14 @@ export default function ProductosTable() {
                 { label: "Imagen", key: "imageId" },
               ]}
               onImport={async (data) => {
-                try {
-                  await importProducts({ variables: { data } });
-                  setSnackbar({
-                    children: "Productos importados correctamente",
-                    severity: "success",
-                  });
-                  setOpenCsvModal(false);
-                  refetch();
-                } catch (error) {
-                  console.error("Error al importar productos:", error);
-                  setSnackbar({
-                    children: "Error al importar productos",
-                    severity: "error",
-                  });
-                }
+                handleImport(data, {
+                  onSuccess: () => {
+                    setOpenCsvModal(false);
+                  },
+                  onError: () => {
+                    // Podés hacer algo si falla
+                  },
+                })
               }}
             />
           </Box>
@@ -898,15 +752,20 @@ export default function ProductosTable() {
             <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setModalManuals(null)}>Cerrar</Button>
           </Box>
         </Modal>
-
-        {/* Notificaciones */}
-        {!!snackbar && (
-          <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={handleCloseSnackbar} autoHideDuration={6000}>
-            <Alert severity={snackbar.severity} onClose={handleCloseSnackbar}>
-              {snackbar.children}
-            </Alert>
-          </Snackbar>
-        )}
+        <FilterModal
+          open={openFilterModal}
+          onClose={() => setOpenFilterModal(false)}
+          onApply={(newFilters) => setFilters({ categoryId: newFilters.categoryId || '', brandId: newFilters.brandId || '' })}
+          currentFilters={filters}
+          filterOptions={{
+            categoryId: categories,
+            brandId: brands,
+          }}
+          filterLabels={{
+            categoryId: 'Categoría',
+            brandId: 'Marca',
+          }}
+        />
       </Box>
     </PageContainer>
   );

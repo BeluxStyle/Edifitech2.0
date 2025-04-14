@@ -27,7 +27,20 @@ lastLogin DateTime?
 isOnline Boolean @default(false)
 comments Comment[]
 reactions Reaction[]
+notifications UserNotification[]
 }
+
+model UserNotification {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  title       String
+  body        String
+  link        String? // Por si querés redirigir a alguna ruta
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
 model UserSubscription {
 id String @id @default(cuid())
 userId String

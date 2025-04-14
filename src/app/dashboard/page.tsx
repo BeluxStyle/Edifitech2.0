@@ -1,13 +1,11 @@
 'use client';
 
 import PageContainer from '@/components/PageContainer';
-import { COUNT_DATA } from '@/graphql/queries';
-import { useQuery } from '@apollo/client';
+import { useCounts } from '@edifitech-graphql/index';
 import { AccountCircle, Apartment, AssignmentLate, BrandingWatermark, Business, Category, Collections, Construction, ContactPhone, Description, ListAlt, Loyalty, People, Plagiarism, Store, SupervisedUserCircle } from '@mui/icons-material';
 import { Box, Card, Typography } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from 'react';
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -17,30 +15,7 @@ const DashboardPage = () => {
 
   const [role, setRole] = useState(0);
   const router = useRouter();
-  const { data: dataCount, loading } = useQuery(COUNT_DATA);
-  const [stats, setStats] = useState<any>(null);
-
-
-  useEffect(() => {
-    if (!loading && dataCount) {
-      setStats({
-        users: dataCount.countUsers,
-        comunities: dataCount.countComunidades,
-        products: dataCount.countProductos,
-        manuals: dataCount.countManuals,
-        buildings: dataCount.countEdificios,
-        roles: dataCount.countRoles,
-        images: dataCount.countImages,
-        categories: dataCount.countCategories,
-        brands: dataCount.countBrands,
-        companies: dataCount.countCompanies,
-        subscriptions: dataCount.countSubscriptions,
-        documents: dataCount.countDocuments,
-        instalaciones: dataCount.countInstalaciones,
-        contactos: dataCount.countContactos,
-      });
-    }
-  }, [loading, dataCount]);
+  const { allCounts: stats} = useCounts()
 
 
   useEffect(() => {
@@ -66,8 +41,8 @@ const DashboardPage = () => {
   const sections = [
     { name: 'Perfil', icon: <AccountCircle sx={colorHover} />, link: '/profile', role: 0 },
     { name: 'Avisos', icon: <AssignmentLate sx={colorHover} />, link: '/avisos', role: 2, count: stats?.avisos },
-    { name: 'Comunidades', icon: <Apartment sx={colorHover} />, link: '/comunidades', role: 2, count: stats?.comunities },
-    { name: 'Edificios', icon: <Business sx={colorHover} />, link: '/edificios', role: 5, count: stats?.buildings },
+    { name: 'Comunidades', icon: <Apartment sx={colorHover} />, link: '/comunidades', role: 2, count: stats.comunidades },
+    { name: 'Edificios', icon: <Business sx={colorHover} />, link: '/edificios', role: 5, count: stats?.edificios },
     { name: 'Productos', icon: <ListAlt sx={colorHover} />, link: '/productos', role: 1, count: stats?.products },
     { name: 'Manuales', icon: <Plagiarism sx={colorHover} />, link: '/manuales', role: 1, count: stats?.manuals },
     { name: 'Contactos', icon: <ContactPhone sx={colorHover} />, link: '/admin/contactos', role: 5, count: stats?.contactos },

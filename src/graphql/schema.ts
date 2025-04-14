@@ -272,18 +272,29 @@ type Manual {
   updatedAt: DateTime!
 }
 
+type UserNotification {
+  id: ID!
+  title: String!
+  body: String!
+  link: String
+  read: Boolean!
+  createdAt: DateTime!
+  user: User!
+}
+
 
 # ... Añadir más tipos según sea necesario
 
 type Query {
   me: User
+  myNotifications: [UserNotification!]!
   listUsers: [User!]!
   countUsers: Int!
   getUser(id: ID!): User
   listRoles: [Rol!]!
   countRoles: Int!
   getRole(id: ID!): Rol
-  subscriptions: [Subscription!]!
+  listSubscriptions: [Subscription!]!
   countSubscriptions: Int!
   subscription(id: ID!): Subscription
   userSubscriptions(userId: ID!): [UserSubscription!]!
@@ -304,7 +315,7 @@ type Query {
   getElemento(id: ID!): Elemento
   listElementos: [Elemento!]!
   getProducto(id: ID!): Producto
-  listProductos(searchTerm: String, page: Int!, pageSize: Int!, categoryId: ID): ProductosResponse!
+  listProductos(searchTerm: String, page: Int!, pageSize: Int!, categoryId: ID, brandId: ID): ProductosResponse!
   countProductos: Int!
   getBrand(id: ID!): Brand
   listBrands: [Brand!]!
@@ -329,11 +340,17 @@ type Query {
 }
 
 type Mutation {
+
+  # Operaciones CRUD para Auth
+  login(email: String!, password: String!): LoginResponse!
+  loginWithGoogle(token: String!): LoginResponse!
+  logout: Boolean!
+  register(name: String!, email: String!, password: String!): User!
   
   
-  addComment(authorId: ID!, comunidadId: ID, edificioId: ID, comment: String!, parentId: ID): Comment!
+  addComment(input: CommentInput!): Comment!
   rateComment(commentId: ID!, rating: Int!): Comment!
-  addReaction(commentId: ID!, type: String!): Reaction!
+  addReaction(input: ReactionInput!): Reaction!
   deleteComment(id: ID!): Boolean!
   importManuales(data: [ManualInput!]!): ImportResponse!
   importProducts(data: [ProductoInput!]!): ImportResponse!
@@ -343,6 +360,9 @@ type Mutation {
   deleteUser(id: ID!): Boolean!
   changePassword(id: ID!, password: String!):  User!
   checkPassword(id: ID!, password: String!): Boolean!
+  markNotificationAsRead(id: ID!): UserNotification
+  markAllNotificationsAsRead: Boolean
+  createUserNotification(userId: ID!,title: String!,body: String!,link: String): UserNotification!
 
   # Operaciones CRUD para Rol
   createRole(name: String!, level: Int): Rol!
@@ -500,6 +520,13 @@ type ImportResponse {
   message: String!
 }
 
+type LoginResponse {
+  user: User
+  token: String
+  success: Boolean!
+  message: String!
+}
+
 type ImportResponseManual {
   success: Boolean!
   message: String!
@@ -545,4 +572,21 @@ input ContactoInput {
   edificioId: String
 }
 
+input CommentInput {
+    comunidadId: String
+    edificioId: String
+    comment: String
+    parentId: String
+}
+input ReactionInput {
+      commentId: String
+      type: String
+    }
+
+input UserNotificationCreateInput {
+  userId: String
+  title: String
+  body: String
+  link: String
+}
 `;

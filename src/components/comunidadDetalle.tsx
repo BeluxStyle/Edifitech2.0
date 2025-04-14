@@ -1,25 +1,20 @@
 
-import { useEffect, useMemo } from "react";
-import { Tooltip, TooltipProps, tooltipClasses, Select, FormControl, Divider, InputLabel, MenuItem, Pagination, Checkbox, TextField, Badge, Card, Box, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Tab, IconButton, Button, CardActions, Modal } from "@mui/material";
-import { Phone, Add, Remove, Delete, CircleNotifications, Description } from "@mui/icons-material";
+import { AntenaIcon, AutomaticDoorIcon, CCTVIcon, ElectricityIcon, FireEstinguisherIcon, IntercomIcon, KeyIcon } from "@/components/CustomIcons";
+import { EdificioInput, toast, useCategories, useCommentHandlers, useContactoHandlers, useEdificioHandlers, useElementoHandlers, useInstalacionHandlers, useProducts } from "@edifitech-graphql/index";
+import { Add, CircleNotifications, Delete, Description, FileOpen, Phone, Remove } from "@mui/icons-material";
 import ApartmentIcon from "@mui/icons-material/Apartment";
-import { useState } from "react";
-import Image from "next/image";
+import { Badge, Box, Button, Card, CardContent, Checkbox, Divider, FormControl, IconButton, InputLabel, List, ListItem, ListItemButton, ListItemIcon, ListItemText, MenuItem, Modal, Pagination, Select, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Tooltip, TooltipProps, Typography, tooltipClasses } from "@mui/material";
 import Grid from '@mui/material/Grid2';
-import { GET_CATEGORIES, GET_PRODUCTS, CREATE_EDIFICIO, CREATE_CONTACTO, DELETE_CONTACTO, CREATE_INSTALACION, DELETE_INSTALACION, POST_COMMENT, DELETE_EDIFICIO, ADD_ELEMENTOS, DELETE_ELEMENTO, UPDATE_ELEMENTO } from "@/graphql/queries";
-import { useQuery, useMutation } from "@apollo/client";
-import { AntenaIcon, CCTVIcon, ElectricityIcon, IntercomIcon, FireEstinguisherIcon, KeyIcon, AutomaticDoorIcon } from "@/components/CustomIcons";
+import { styled } from "@mui/material/styles";
 import moment from 'moment';
 import "moment/locale/es";
 import { useSession } from 'next-auth/react';
-import ConfirmDialog from "./ConfirmDialog";
-import ContactosModal from "./ContactosModal";
-import useConfirm from "./../util/useConfirm"
+import Image from "next/image";
 import { useRouter } from "next/navigation"; // Correcto para App Router
-moment().locale('es');
-import { styled } from "@mui/material/styles";
-
+import { useEffect, useMemo, useState } from "react";
 import CommentsList from "./CommentList";
+import ContactosModal from "./ContactosModal";
+moment().locale('es');
 
 
 
@@ -42,50 +37,19 @@ export default function DetalleComunidad({ comunidad }) {
 
     const router = useRouter();
 
-    const { confirmData, showConfirm, closeConfirm } = useConfirm();
+    const { handleCreate: handleCreateEd, handleDelete: handleDeleteEd } = useEdificioHandlers()
+    const { handleCreate: handleCreateCon, handleDelete: handleDeleteCon } = useContactoHandlers()
+    const { handleCreate: handleCreateInst, handleDelete: handleDeleteInst } = useInstalacionHandlers()
+    const { handleAdd, handleUpdate: handleUpdateEl, handleDelete: handleDeleteEl } = useElementoHandlers()
+    const { handlePost } = useCommentHandlers()
 
     const { data: session } = useSession();
-    const [createEdificio] = useMutation(CREATE_EDIFICIO, {
-        refetchQueries: ["GetComunidad"], // Para actualizar la UI después de reaccionar
-    });
-    const [postComment] = useMutation(POST_COMMENT, {
-        refetchQueries: ["GetComunidad"],
-    })
-    const [deleteEdificio] = useMutation(DELETE_EDIFICIO, {
-        refetchQueries: ["GetComunidad"],
-    })
-    const [deleteElemento] = useMutation(DELETE_ELEMENTO, {
-        refetchQueries: ["GetComunidad"],
-    })
-    const [updateElemento] = useMutation(UPDATE_ELEMENTO, {
-        refetchQueries: ["GetComunidad"],
-    })
-    const [createInstalacion, { error }] = useMutation(CREATE_INSTALACION, {
-        refetchQueries: ["GetComunidad"], // Actualiza la UI después de crear una instalación
-    });
 
-    const [createContacto] = useMutation(CREATE_CONTACTO, {
-        refetchQueries: ["GetComunidad"], // Actualiza la UI después de crear una instalación
-    });
+    const { categories } = useCategories();
 
-    const [deleteContacto] = useMutation(DELETE_CONTACTO, {
-        refetchQueries: ["GetComunidad"],
-    })
-
-    const [deleteInstalacion] = useMutation(DELETE_INSTALACION, {
-        refetchQueries: ["GetComunidad"],
-    })
-
-    const [addElementosMutation] = useMutation(ADD_ELEMENTOS, {
-        refetchQueries: ["GetComunidad"], // Para actualizar la UI después de agregar elementos
-    });
-    const { data: dataCategories } = useQuery(GET_CATEGORIES);
-
-    const tiposInstalacion = dataCategories?.listCategories || [];
-
+    const tiposInstalacion = categories || [];
 
     const [tabIndex, setTabIndex] = useState(0);
-    const [openModal, setOpenModal] = useState(false);
     const [manuals, setManuals] = useState([]);
     const [modalManuals, setModalManuals] = useState(false);
     const [modalComment, setModalComment] = useState(false);
@@ -94,14 +58,11 @@ export default function DetalleComunidad({ comunidad }) {
     const [modalElement, setModalElement] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [newEdificio, setNewEdificio] = useState("");
-    const [newInstalacion, setNewInstalacion] = useState({ tipo: "", descripcion: "", categoryId: "" });
+    const [newInstalacion, setNewInstalacion] = useState({ tipo: "", descripcion: "", categoryId: "", comunidadId: comunidad.id });
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedProducts, setSelectedProducts] = useState([]);
     const [selectedInstalacion, setSelectedInstalacion] = useState(null);
-    const [quantity, setQuantity] = useState(1);
-    const [page, setPage] = useState(1);
-    const pageSize = 10;
-  
+
     const [role, setRole] = useState(0);
     useEffect(() => {
         if (session) {
@@ -114,65 +75,59 @@ export default function DetalleComunidad({ comunidad }) {
 
     const StyledTooltip = styled(({ className, ...props }: TooltipProps) => (
         <Tooltip {...props} classes={{ popper: className }} />
-      ))({
+    ))({
         [`& .${tooltipClasses.tooltip}`]: {
-          maxWidth: 500,
-          backgroundColor: "transparent",
+            maxWidth: 500,
+            backgroundColor: "transparent",
         },
-      });
+    });
 
     const ImageWithTooltip = ({ src }) => (
         <StyledTooltip
-          title={
-            <Image
-              src={src}
-              alt="Producto"
-              width={500} // Ajusta el tamaño grande
-              height={500}
-              style={{
-                objectFit: "contain",
-                borderRadius: 8,
-                border: "1px solid #ccc",
-                backgroundColor: "#fff",
-              }}
-            />
-          }
-          placement="right"
+            title={
+                <Image
+                    src={src}
+                    alt="Producto"
+                    width={500} // Ajusta el tamaño grande
+                    height={500}
+                    style={{
+                        objectFit: "contain",
+                        borderRadius: 8,
+                        border: "1px solid #ccc",
+                        backgroundColor: "#fff",
+                    }}
+                />
+            }
+            placement="right"
         >
-          <Image
-            src={src}
-            alt="Producto"
-            width={40} // Miniatura en la tabla
-            height={40}
-            style={{ cursor: "pointer", objectFit: "contain" }}
-          />
+            <Image
+                src={src}
+                alt="Producto"
+                width={40} // Miniatura en la tabla
+                height={40}
+                style={{ cursor: "pointer", objectFit: "contain" }}
+            />
         </StyledTooltip>
-      );
+    );
 
 
-    function useProductos(searchTerm, page, pageSize, categoryId) {
-        const { data, loading, error } = useQuery(GET_PRODUCTS, {
-            variables: { searchTerm, page, pageSize, categoryId },
-            skip: !categoryId, // No ejecutar la consulta si no hay categoría seleccionada
-        });
-        console.log("Categoria",selectedInstalacion?.categoryId)
-    
-        return {
-            productos: data?.listProductos.productos || [],
-            totalCount: data?.listProductos.totalCount || 0,
-            loading,
-            error,
-        };
-    }
-    const { productos, totalCount, loading } = useProductos(searchTerm, page, pageSize, selectedInstalacion?.categoryId);
+    const [filters, setFilters] = useState({ categoryId: '', brandId: '' });
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0, // Página inicial (0-based)
+        pageSize: 20, // Tamaño de página predeterminado
+    });
+    const { products: productos, totalCount, loading } = useProducts(searchTerm, paginationModel, filters);
 
     const handlePageChange = (_, newPage) => {
-        setPage(newPage);
+        setPaginationModel({ ...paginationModel, page: newPage });
     };
 
-    if (!productos) {
-        console.log("No hay productos")
-    }
+    useEffect(() => {
+        setFilters({ ...filters, categoryId: selectedInstalacion?.category?.id })
+    }, [selectedInstalacion]);
+
+
+
 
     const handleSelectProduct = (producto) => {
         setSelectedProducts((prev) => {
@@ -186,30 +141,31 @@ export default function DetalleComunidad({ comunidad }) {
 
 
     const handleAddComment = async () => {
-        try {
-            console.log("Nuevo comentario:", newComment);
-
-            await postComment({
-                variables: { authorId: session?.user?.id, comunidadId: comunidad.id, comment: newComment }
-            });
-            setModalComment(false);
-            setNewComment("")
-        } catch (error) {
-            console.error("Error al reaccionar:", error);
+        let postcomment = {
+            comment: newComment,
+            comunidadId: comunidad.id
         }
+        handlePost(postcomment, {
+            onSuccess() {
+                setModalComment(false);
+                setNewComment("")
+            },
+        })
     };
     const handleAddEdificio = async () => {
-        console.log("Nuevo edificio:", newEdificio);
-        const variables: any = {
-            input: {
-                name: newEdificio,
-                direccion: comunidad.direccion,
-                cp: comunidad.cp,
-                comunidadId: comunidad.id
+
+        const input: EdificioInput = {
+            name: newEdificio,
+            direccion: comunidad.direccion,
+            cp: comunidad.cp,
+            comunidadId: comunidad.id
+        }
+
+        handleCreateEd(input, {
+            onSuccess() {
+                setModalEdificio(false);
             },
-        };
-        const response = await createEdificio({ variables });
-        setModalEdificio(false);
+        })
     };
 
     const handleShowManuals = (manuales) => {
@@ -224,138 +180,35 @@ export default function DetalleComunidad({ comunidad }) {
 
     const handleAddElements = async () => {
         if (!selectedInstalacion.id || selectedProducts.length === 0) {
-            console.error("Debe seleccionar una instalación y al menos un producto.");
+            toast("Debe seleccionar una instalación y al menos un producto.", "error");
             return;
         }
+        let elementos = selectedProducts.map(p => ({
+            productoId: p.id,
+            cantidad: p.quantity
+        }))
 
-        try {
-            console.log("Añadiendo elementos a la instalación:", selectedInstalacion.id, selectedProducts);
-
-            await addElementosMutation({
-                variables: {
-                    instalacionId: selectedInstalacion.id,
-                    elementos: selectedProducts.map(p => ({
-                        productoId: p.id,
-                        cantidad: p.quantity
-                        ,
-                    })),
+        handleAdd(selectedInstalacion.id, elementos,
+            {
+                onSuccess() {
+                    setModalElement(false);
+                    setSelectedProducts([]);
                 },
-            });
-
-            // Si la mutación es exitosa, cerramos el modal y limpiamos la selección
-            setModalElement(false);
-            setSelectedProducts([]);
-        } catch (error) {
-            console.error("Error al añadir elementos:", error);
-        }
-    };
-
-    const handleDeleteEdificio = async (edificioId) => {
-        console.log("Edificio Borrado", edificioId)
-        try {
-            await deleteEdificio({
-                variables: { id: edificioId }
-            });
-            closeConfirm();
-        } catch (error) {
-            console.error("Error al borrar:", error);
-        }
-    };
-
-    const handleDeleteInstalacion = async (instalacionId) => {
-        try {
-            await deleteInstalacion({
-                variables: { id: instalacionId }
-            });
-            closeConfirm();
-        } catch (error) {
-            console.error("Error al borrar:", error);
-        }
+            })
     };
 
 
 
     const handleUpdateCantidad = async (elementoId, nuevaCantidad) => {
         if (!elementoId || nuevaCantidad < 1) {
-            console.error("Cantidad inválida o ID de elemento no válido.");
+            toast("Cantidad inválida o ID de elemento no válido.", "error");
             return;
         }
 
-        try {
-            console.log(`Actualizando cantidad del elemento ${elementoId} a ${nuevaCantidad}`);
+        handleUpdateEl(elementoId, nuevaCantidad)
 
-            await updateElemento({
-                variables: {
-                    updateElementoId: elementoId,
-                    input: {
-                        cantidad: nuevaCantidad,
-                    },
-                },
-            });
-        } catch (error) {
-            console.error("Error al actualizar cantidad:", error);
-        }
     };
 
-
-    const handleDeleteElemento = async (elementoId) => {
-        console.log("Elemento Borrado", elementoId)
-        try {
-            await deleteElemento({
-                variables: { id: elementoId }
-            });
-            closeConfirm();
-        } catch (error) {
-            console.error("Error al borrar:", error);
-        }
-    }
-
-    const handleAgregarContacto = async (contacto) => {
-        try {
-            await createContacto({ variables: { input: { ...contacto, comunidadId: comunidad.id } } });
-            console.log("nuevo contacto: ", contacto)
-        } catch (error) {
-            console.error("Error al agregar contacto:", error);
-        }
-    };
-
-    const handleDeleteContacto = async (contactoId) => {
-        try {
-            await deleteContacto({
-                variables: { id: contactoId }
-            });
-            closeConfirm();
-        } catch (error) {
-            console.error("Error al borrar:", error);
-        }
-    };
-
-    const handleCreateInstalacion = async () => {
-        if (!newInstalacion.tipo || !newInstalacion.descripcion) {
-            console.error("Todos los campos son obligatorios.");
-            return;
-        }
-
-        try {
-            console.log("Creando instalación:", newInstalacion);
-
-            await createInstalacion({
-                variables: {
-                    input: {
-                        comunidadId: comunidad.id,
-                        tipo: newInstalacion.tipo,
-                        categoryId: newInstalacion.categoryId,
-                        descripcion: newInstalacion.descripcion,
-                    },
-                },
-            });
-
-            // Resetear formulario tras éxito
-            setNewInstalacion({ tipo: "", descripcion: "", categoryId: "" });
-        } catch (error) {
-            console.error("Error al crear instalación:", error);
-        }
-    };
 
 
     return (
@@ -450,7 +303,7 @@ export default function DetalleComunidad({ comunidad }) {
                                                 <TableCell>{edificio.instalaciones.map((inst, index) => (
                                                     <span key={index} style={{ marginRight: 8 }}>{getInstalacionIcon(inst.tipo)}</span>
                                                 ))}</TableCell>
-                                                <TableCell align="right"><IconButton size="small" color="error" disabled={!hasAccess} onClick={() => showConfirm("Eliminar Edificio", "¿Seguro que quieres eliminar?", () => handleDeleteEdificio(edificio.id))}><Delete /></IconButton></TableCell>
+                                                <TableCell align="right"><IconButton size="small" color="error" disabled={!hasAccess} onClick={() => handleDeleteEd(edificio.id)}><Delete /></IconButton></TableCell>
                                             </TableRow>
                                         ))}
 
@@ -520,12 +373,17 @@ export default function DetalleComunidad({ comunidad }) {
                             />
 
                             {/* Botón para guardar */}
-                            <Button variant="contained" sx={{ mt: 2 }} onClick={handleCreateInstalacion} disabled={loading}>
+                            <Button variant="contained" sx={{ mt: 2 }}
+                                onClick={() => handleCreateInst(
+                                    newInstalacion, {
+                                    onSuccess() {
+                                        setNewInstalacion({ tipo: "", descripcion: "", categoryId: "", comunidadId: comunidad.id })
+                                    },
+
+                                })}
+                                disabled={loading}>
                                 {loading ? "Guardando..." : "Guardar Instalación"}
                             </Button>
-
-                            {/* Mostrar error si ocurre */}
-                            {error && <Typography color="error" sx={{ mt: 1 }}>Error al crear instalación</Typography>}
                         </Card>
                     ) : (
                         comunidad.instalaciones[tabIndex] && (
@@ -547,14 +405,14 @@ export default function DetalleComunidad({ comunidad }) {
                                     <TableBody>
                                         {comunidad.instalaciones[tabIndex].elementos.map((row) => (
                                             <TableRow key={row.id}>
-                                                <TableCell>{ImageWithTooltip({ src: row.producto.image?.url || "/images/photo.png" })}</TableCell>
+                                                <TableCell>{ImageWithTooltip({ src: row.producto?.image?.url || "/images/photo.png" })}</TableCell>
                                                 <TableCell>{row.producto?.subcategory?.name}</TableCell>
                                                 <TableCell>{row.producto?.name}</TableCell>
                                                 <TableCell>{row.producto?.brand?.name}</TableCell>
-                                                <TableCell>{row.producto.descripcion}</TableCell>
+                                                <TableCell>{row.producto?.descripcion}</TableCell>
                                                 <TableCell align="center">
-                                                    <IconButton size="small" color={row.producto.manuals.length ? "primary" : "default"} onClick={() => handleShowManuals(row.producto.manuals)}>
-                                                        <Badge badgeContent={row.producto.manuals.length} color="primary">
+                                                    <IconButton size="small" color={row.producto?.manuals.length ? "primary" : "default"} onClick={() => handleShowManuals(row.producto?.manuals)}>
+                                                        <Badge badgeContent={row.producto?.manuals.length} color="primary">
                                                             <Description />
                                                         </Badge>
                                                     </IconButton>
@@ -565,17 +423,18 @@ export default function DetalleComunidad({ comunidad }) {
                                                         <Typography component="span" sx={{ mx: 1 }}>{row.cantidad}</Typography>
                                                         <IconButton disabled={!hasAccess} onClick={() => handleUpdateCantidad(row.id, row.cantidad + 1)}><Add /></IconButton>
                                                     </Box></TableCell>
-                                                <TableCell align="right"><IconButton size="small" color="error" disabled={!hasAccess} onClick={() => showConfirm("Eliminar Elemento", "¿Seguro que quieres eliminar?", () => handleDeleteElemento(row.id))}><Delete /></IconButton></TableCell>
+                                                <TableCell align="right"><IconButton size="small" color="error" disabled={!hasAccess} onClick={() => handleDeleteEl(row.id)}><Delete /></IconButton></TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                                 <Button disabled={!addAccess} variant="outlined" startIcon={<Add />} sx={{ mt: 2, mr: 2 }} onClick={() => {
                                     setSelectedInstalacion(comunidad.instalaciones[tabIndex]);
+
                                     setModalElement(true);
                                 }}>Agregar Elemento</Button>
                                 <Button variant="outlined" color="error" startIcon={<Delete />} sx={{ mt: 2 }}
-                                    disabled={!hasAccess} onClick={() => showConfirm("Eliminar Instalación", "¿Seguro que quieres eliminar?", () => handleDeleteInstalacion(comunidad.instalaciones[tabIndex].id))}
+                                    disabled={!hasAccess} onClick={() => handleDeleteInst(comunidad.instalaciones[tabIndex].id)}
                                 >Eliminar Instalacion</Button>
                             </Card>
 
@@ -586,7 +445,8 @@ export default function DetalleComunidad({ comunidad }) {
                 <Box sx={{ p: 3, backgroundColor: "white", width: 400, margin: "auto", mt: 10 }}>
                     <Typography variant="h6">Añadir Comentario</Typography>
                     <TextField fullWidth multiline rows={3} sx={{ mt: 2 }} value={newComment} onChange={(e) => setNewComment(e.target.value)} />
-                    <Button variant="outlined" sx={{ mt: 2 }} onClick={handleAddComment}>Enviar</Button>
+                    <Button variant="outlined" sx={{ mt: 2 }}
+                        onClick={handleAddComment}>Enviar</Button>
                 </Box>
             </Modal>
             <Modal open={modalEdificio} onClose={() => setModalEdificio(false)}>
@@ -599,16 +459,38 @@ export default function DetalleComunidad({ comunidad }) {
             <Modal open={Boolean(modalManuals)} onClose={() => setModalManuals(null)}>
                 <Box sx={{ p: 3, backgroundColor: "white", width: 500, margin: "auto", mt: 10 }}>
                     <Typography variant="h6">Manuales</Typography>
-                    {modalManuals && manuals.length > 0 ? (
-                        manuals.map((manual, index) => (
-                            <Typography key={index} sx={{ mt: 1 }}>
-                                <a href={manual.documento.url} target="_blank" rel="noopener noreferrer">{manual.name}</a>
-                            </Typography>
-                        ))
+
+                    {/* Verifica si hay manuales disponibles */}
+                    {manuals.length > 0 ? (
+                        <List dense={true}>
+                            {manuals.map((manual, index) => (
+                                <ListItem key={index} >
+                                    <ListItemButton href={manual.documento?.url} target="_blank">
+                                        <ListItemIcon>
+                                            <FileOpen />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={manual.name}
+                                            secondary={
+                                                manual.documento?.url || "URL no disponible" // Maneja casos donde url no existe
+                                            }
+                                        />
+                                    </ListItemButton>
+                                </ListItem>
+                            ))}
+                        </List>
                     ) : (
                         <Typography sx={{ mt: 2 }}>No hay manuales disponibles.</Typography>
                     )}
-                    <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setModalManuals(null)}>Cerrar</Button>
+
+                    {/* Botón para cerrar el modal */}
+                    <Button
+                        variant="outlined"
+                        sx={{ mt: 2 }}
+                        onClick={() => setModalManuals(null)}
+                    >
+                        Cerrar
+                    </Button>
                 </Box>
             </Modal>
             {/* Modal para agregar elemento */}
@@ -646,8 +528,8 @@ export default function DetalleComunidad({ comunidad }) {
                                 </Table>
                             </TableContainer>
                             <Pagination
-                                count={Math.ceil(totalCount / pageSize)}
-                                page={page}
+                                count={Math.ceil(totalCount / paginationModel.pageSize)}
+                                page={paginationModel.page}
                                 onChange={handlePageChange}
                                 sx={{ mt: 2, display: "flex", justifyContent: "center" }}
                             />
@@ -684,15 +566,8 @@ export default function DetalleComunidad({ comunidad }) {
                 setModalOpen={setModalContactos}
                 title="Contactos de la Comunidad"
                 contactos={comunidad.contactos}
-                agregarContacto={(nuevo) => handleAgregarContacto(nuevo)}
-                deleteContacto={(contactoId) => handleDeleteContacto(contactoId)}
-            />
-            <ConfirmDialog
-                open={confirmData.open}
-                onClose={closeConfirm}
-                onConfirm={confirmData.onConfirm}
-                title={confirmData.title}
-                message={confirmData.message}
+                agregarContacto={(nuevo) => handleCreateCon({ ...nuevo, comunidadId: comunidad.id }, {})}
+                deleteContacto={(contactoId) => handleDeleteCon(contactoId)}
             />
         </Grid>
 

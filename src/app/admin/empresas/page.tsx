@@ -1,14 +1,13 @@
 'use client';
 import CompanyDetailsModal from "@/components/CompanyDetailsModal";
 import PageContainer from '@/components/PageContainer';
-import { CREATE_COMPANY, DELETE_COMPANY, GET_COMPANIES, UPDATE_COMPANY } from "@/graphql/queries";
+import SearchbarTools from "@/components/SearchbarTools";
 import { hashCode, intToRGB } from '@/util/utils';
-import { useMutation, useQuery } from "@apollo/client";
-import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
+import { useCompanies, useCompanyHandlers } from "@edifitech-graphql/index";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
-import { Alert, Box, Button, Chip, IconButton, InputAdornment, MenuItem, Select, Modal, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
-import { DataGrid, GridAddIcon, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
+import { Alert, Box, Button, Chip, IconButton, MenuItem, Modal, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
+import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import { Company } from '@prisma/client';
 import moment from 'moment';
@@ -19,15 +18,13 @@ moment().locale('es');
 
 export default function CompaniesTable() {
 
-  const { data, loading, error, refetch } = useQuery(GET_COMPANIES);
-  const [createCompany] = useMutation(CREATE_COMPANY);
-  const [updateCompany] = useMutation(UPDATE_COMPANY);
-  const [deleteCompany] = useMutation(DELETE_COMPANY);
+  const { companies, loading, error, refetch } = useCompanies()
+  const { handleCreate, handleUpdate, handleDelete } = useCompanyHandlers()
 
   const [openModal, setOpenModal] = useState(false);
   const [newCompany, setNewCompany] = useState({ name: "", cif: "", phone: "", address: "", type: "" });
   const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
-  const [searchText, setSearchText] = useState(''); // Estado para el texto de búsqueda
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para el texto de búsqueda
 
 
   // Estado para el modal de detalles
@@ -41,10 +38,10 @@ export default function CompaniesTable() {
   }, []);
 
   useEffect(() => {
-    if (!loading && data && isMounted) {
+    if (!loading && companies && isMounted) {
       refetch();
     }
-  }, [loading, data, isMounted]);
+  }, [loading, companies, isMounted]);
 
   // Función para abrir el modal con los detalles de la empresa
   const handleOpenDetailsModal = (company: Company) => {
@@ -60,17 +57,13 @@ export default function CompaniesTable() {
 
   const handleCloseSnackbar = () => setSnackbar(null);
 
-  const companies = data?.listCompanies.map((company: Company) => ({
-    ...company,
-  })) || [];
-
   const filteredRows = useMemo(() => {
-    if (!searchText) return companies;
+    if (!searchTerm) return companies;
     return companies.filter((row: Company) =>
       [row.name, row.cif, row.phone, row.address]
-        .some((field) => field?.toLowerCase().includes(searchText.toLowerCase()))
+        .some((field) => field?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [searchText, companies]);
+  }, [searchTerm, companies]);
 
   function CustomToolbar() {
     return (
@@ -91,54 +84,6 @@ export default function CompaniesTable() {
     console.error("Error al procesar la actualización de fila:", error);
   }, []);
 
-
-  const handleEditCell = async (params: any) => {
-    try {
-      const { id, name, cif, phone, address } = params;
-      await updateCompany({ variables: { id, input: { name, cif, phone, address } } });
-      setSnackbar({ children: `Empresa ${name} actualizada correctamente`, severity: "success" });
-      refetch();
-      return params;
-    } catch (error) {
-      console.error("Error en la actualización:", error);
-      setSnackbar({ children: "Error al actualizar Empresa", severity: "error" });
-      return params.row;
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteCompany({ variables: { id } });
-      setSnackbar({ children: "Marca eliminado correctamente", severity: "success" });
-      refetch();
-    } catch (error) {
-      console.error("Error en la eliminación:", error);
-      setSnackbar({ children: "Error al eliminar Marca", severity: "error" });
-    }
-  };
-
-  const handleCreate = async () => {
-    try {
-
-      const variables: any = {
-        input: newCompany,
-      };
-
-
-      const response = await createCompany({ variables });
-
-      console.log("Respuesta del servidor:", response); // 🔍 Imprimir la respuesta
-
-      setSnackbar({ children: "Empresa creada correctamente", severity: "success" });
-      setOpenModal(false);
-      setNewCompany({ name: "", cif: "", phone: "", address: "", type: "" }); // Limpiar el formulario
-      refetch(); // Recargar datos en la tabla
-    } catch (error: any) {
-      console.error("Error al crear empresa:", error);
-      console.log("Detalles del error:", error.networkError?.result?.errors || error.message);
-      setSnackbar({ children: "Error al crear empresa", severity: "error" });
-    }
-  };
 
 
 
@@ -235,31 +180,16 @@ export default function CompaniesTable() {
     <PageContainer>
       <Box sx={{ flex: 1, flexDirection: 'column' }}>
         <Typography variant='h4'>Listado de Empresas</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'right', gap: 1, mb: 4 }}>
-          <TextField
-            variant="outlined"
-            sx={{ width: "100%" }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlined />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-
-          />
-          <Button variant="contained" onClick={() => refetch()} sx={{ width: 30, color: 'white', bgcolor: 'primary.main' }}>
-            <Refresh />
-          </Button>
-          <Button variant="contained" onClick={() => setOpenModal(true)} sx={{ width: 130, color: 'white', bgcolor: 'primary.main' }}>
-            <GridAddIcon /> Nuevo
-          </Button>
-
-        </Box>
+        <SearchbarTools
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onAdd={() => setOpenModal(true)}
+          onRefresh={() => refetch()}
+          showImport={false}
+          showFilter={false}
+          loading={loading}
+          type='Empresas'
+        />
         {/* Botón para abrir el modal */}
 
 
@@ -272,7 +202,7 @@ export default function CompaniesTable() {
           pageSizeOptions={[5, 10, 20, 100]}
           editMode="row"
           getRowHeight={() => 60}
-          processRowUpdate={handleEditCell}
+          processRowUpdate={handleUpdate}
           onProcessRowUpdateError={handleProcessRowUpdateError}
           onRowEditStop={(params, event) => {
             if (params.reason === GridRowEditStopReasons.rowFocusOut) event.defaultMuiPrevented = true;
@@ -338,7 +268,21 @@ export default function CompaniesTable() {
               <MenuItem value="ADMINISTRADOR">Administrador</MenuItem>
               <MenuItem value="PROVEEDOR">Proveedor</MenuItem>
             </Select>
-            <Button variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
+            <Button variant="contained"
+              onClick={() => {
+                handleCreate(
+                  newCompany, {
+                  onSuccess: () => {
+                    setOpenModal(false);
+                    setNewCompany({ name: "", address: "", phone: "", cif: "", type: "" })
+                  },
+                  onError: () => {
+                    // Podés hacer algo si falla
+                  },
+                }
+                )
+              }}
+              sx={{ mt: 2 }}>
               Crear
             </Button>
           </Box>

@@ -1,48 +1,44 @@
 'use client';
+import FilterModal from '@/components/FilterModal';
 import PageContainer from '@/components/PageContainer';
-import { CREATE_CONTACTO, DELETE_CONTACTO, GET_CONTACTOS, UPDATE_CONTACTO } from "@/graphql/queries";
+import SearchbarTools from '@/components/SearchbarTools';
 import { copyRowToClipboard, hashCode, intToRGB, shareRowOnWhatsApp } from '@/util/utils';
-import { useMutation, useQuery } from "@apollo/client";
-import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
+import { toast, useContactoHandlers, useContactos } from '@edifitech-graphql/index';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from "@mui/icons-material/Delete";
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
-import { Alert, Box, Button, Chip, IconButton, InputAdornment, MenuItem, Modal, Select, Snackbar, TextField, Typography } from "@mui/material";
-import { DataGrid, GridAddIcon, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
+import { Alert, Box, Button, Chip, IconButton, MenuItem, Modal, Select, TextField, Typography } from "@mui/material";
+import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import { Contacto } from '@prisma/client';
 import moment from 'moment';
 import "moment/locale/es";
 import * as React from 'react';
 import { useMemo, useState } from "react";
+
 moment().locale('es');
 
 
 export default function ContactosTable() {
 
-    const { data, loading, error, refetch } = useQuery(GET_CONTACTOS, { fetchPolicy: "cache-and-network" });
-    const [createContacto] = useMutation(CREATE_CONTACTO);
-    const [updateContacto] = useMutation(UPDATE_CONTACTO);
-    const [deleteContacto] = useMutation(DELETE_CONTACTO);
+    const { contactos, loading, error, refetch } = useContactos()
+    const { handleCreate, handleDelete, handleUpdate } = useContactoHandlers()
 
     const [openModal, setOpenModal] = useState(false);
     const [newContacto, setNewContacto] = useState({ name: "" });
-    const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
-    const [searchText, setSearchText] = useState(''); // Estado para el texto de búsqueda
+    const [searchTerm, setSearchTerm] = useState(''); // Estado para el texto de búsqueda
 
-    const handleCloseSnackbar = () => setSnackbar(null);
-
-    const contactos = data?.listContactos.map((contacto: Contacto) => ({
-        ...contacto,
-    })) || [];
+    const [openFilterModal, setOpenFilterModal] = useState(false);
+    const [filters, setFilters] = useState({ comunidadId: '', edificioId: '' });
+    
 
     const filteredRows = useMemo(() => {
-        if (!searchText) return contactos;
+        if (!searchTerm) return contactos;
         return contactos.filter((row: Contacto) =>
             [row.name]
-                .some((field) => field?.toLowerCase().includes(searchText.toLowerCase()))
+                .some((field) => field?.toLowerCase().includes(searchTerm.toLowerCase()))
         );
-    }, [searchText, contactos]);
+    }, [searchTerm, contactos]);
 
     function CustomToolbar() {
         return (
@@ -57,76 +53,32 @@ export default function ContactosTable() {
     };
 
     const handleProcessRowUpdateError = React.useCallback((error: Error) => {
-        setSnackbar({ children: error.message, severity: "error" });
+        toast(error.message, "error");
         console.error("Error al procesar la actualización de fila:", error);
     }, []);
 
 
-    const handleEditCell = async (params: { id: string, name: string, location: string, type: string, phone: string}) => {
-        try {
-            const { id, name, location, phone, type } = params;
-            await updateContacto({ variables: { id, input: { name, location, phone, type}} });
-            setSnackbar({ children: `Contacto ${name} actualizado correctamente`, severity: "success" });
-            refetch();
-            return params;
-        } catch (error) {
-            console.error("Error en la actualización:", error);
-            setSnackbar({ children: "Error al actualizar contacto", severity: "error" });
-            return params;
-        }
-    };
 
-    const handleDelete = async (id: string) => {
-        try {
-            await deleteContacto({ variables: { id } });
-            setSnackbar({ children: "Contacto eliminado correctamente", severity: "success" });
-            refetch();
-        } catch (error) {
-            console.error("Error en la eliminación:", error);
-            setSnackbar({ children: "Error al eliminar Contacto", severity: "error" });
-        }
-    };
-
-    const handleCreate = async () => {
-        try {
-
-            const variables = {
-                input: newContacto,
-            };
-
-
-            const response = await createContacto({ variables });
-
-            console.log("Respuesta del servidor:", response); // 🔍 Imprimir la respuesta
-
-            setSnackbar({ children: "Usuario creado correctamente", severity: "success" });
-            setOpenModal(false);
-            setNewContacto({ name: "" });
-            refetch(); // Recargar datos en la tabla
-        } catch (error) {
-            console.error("Error al crear usuario:", error);
-            setSnackbar({ children: "Error al crear usuario", severity: "error" });
-        }
-    };
 
 
     const columns: GridColDef[] = [
-        { field: "type", headerName: "Tipo", flex: 1, editable: true, maxWidth: 120,
+        {
+            field: "type", headerName: "Tipo", flex: 1, editable: true, maxWidth: 120,
             renderCell: (params) => <><Chip label={params.row.type.toLowerCase()} sx={{ backgroundColor: "#" + intToRGB(hashCode(params.row.type)) }} /></>,
             renderEditCell: (params) => (
                 <Select
-                  value={params.value || ""}
-                  onChange={(event) => params.api.setEditCellValue({ id: params.id, field: "type", value: event.target.value })}
-                  fullWidth
+                    value={params.value || ""}
+                    onChange={(event) => params.api.setEditCellValue({ id: params.id, field: "type", value: event.target.value })}
+                    fullWidth
                 >
-                  {["Vecino", "Presidente", "Vocal", "Mantenedor"].map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
+                    {["Vecino", "Presidente", "Vocal", "Mantenedor"].map((option) => (
+                        <MenuItem key={option} value={option}>
+                            {option}
+                        </MenuItem>
+                    ))}
                 </Select>
-              ),
-         },
+            ),
+        },
         { field: "name", headerName: "Nombre", flex: 1, editable: true },
         {
             field: "comunidad",
@@ -136,7 +88,7 @@ export default function ContactosTable() {
         },
         { field: "phone", headerName: "Teléfono", flex: 1, editable: true, maxWidth: 120 },
         { field: "location", headerName: "Ubicación", flex: 1, editable: true },
-        
+
 
         {
             field: "actions",
@@ -153,8 +105,8 @@ export default function ContactosTable() {
                         <IconButton onClick={() => handleDelete(String(params.id))} color="error">
                             <DeleteIcon />
                         </IconButton>
-                        <IconButton  size="small" color="primary"
-                            onClick={() => { copyRowToClipboard(params.row), setSnackbar({ children: `Contacto ${params.row.name} Copiado`, severity: "success" }) }}
+                        <IconButton size="small" color="primary"
+                            onClick={() => { copyRowToClipboard(params.row), toast(`Contacto ${params.row.name} Copiado`, "success") }}
                         >
                             <ContentCopyIcon />
                         </IconButton>
@@ -169,7 +121,7 @@ export default function ContactosTable() {
         },
     ];
 
-    
+
     if (error) {
         return <Alert severity="error">Error al cargar datos</Alert>;
     }
@@ -178,30 +130,16 @@ export default function ContactosTable() {
         <PageContainer>
             <Box sx={{ flex: 1, flexDirection: 'column' }}>
                 <Typography variant='h4'>Listado de Contactos</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'right', gap: 1, mb: 4 }}>
-                    <TextField
-                        variant="outlined"
-                        sx={{ width: "100%" }}
-                        slotProps={{
-                            input: {
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchOutlined />
-                                    </InputAdornment>
-                                ),
-                            },
-                        }}
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-
-                    />
-                    <Button variant="contained" onClick={() => refetch()} sx={{ width: 30, color: 'white', bgcolor: 'primary.main' }}>
-                        <Refresh />
-                    </Button>
-                    <Button variant="contained" onClick={() => setOpenModal(true)} sx={{ width: 130, color: 'white', bgcolor: 'primary.main' }}>
-                        <GridAddIcon /> Nuevo
-                    </Button>
-                </Box>
+                <SearchbarTools
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    onAdd={() => setOpenModal(true)}
+                    onRefresh={() => refetch()}
+                    showImport={false}
+                    onFilter={() => setOpenFilterModal(true)}
+                    loading={loading}
+                    type='Contactos'
+                />
                 {/* Botón para abrir el modal */}
 
 
@@ -214,7 +152,7 @@ export default function ContactosTable() {
                     pageSizeOptions={[5, 10, 20, 100]}
                     editMode="row"
                     getRowHeight={() => 60}
-                    processRowUpdate={handleEditCell}
+                    processRowUpdate={handleUpdate}
                     onProcessRowUpdateError={handleProcessRowUpdateError}
                     onRowEditStop={(params, event) => {
                         if (params.reason === GridRowEditStopReasons.rowFocusOut) event.defaultMuiPrevented = true;
@@ -244,22 +182,39 @@ export default function ContactosTable() {
                             onChange={handleChange}
                             margin="normal"
                         />
-                        <Button variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
+                        <Button variant="contained"
+                            onClick={() => {
+                                handleCreate(
+                                    newContacto, {
+                                    onSuccess: () => {
+                                        setOpenModal(false);
+                                        setNewContacto({ name: "" })
+                                    },
+                                    onError: () => {
+                                        // Podés hacer algo si falla
+                                    },
+                                }
+                                )
+                            }} 
+                            sx={{ mt: 2 }}>
                             Crear
                         </Button>
                     </Box>
                 </Modal>
-
-
-
-                {/* Notificaciones */}
-                {!!snackbar && (
-                    <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={handleCloseSnackbar} autoHideDuration={6000}>
-                        <Alert severity={snackbar.severity} onClose={handleCloseSnackbar}>
-                            {snackbar.children}
-                        </Alert>
-                    </Snackbar>
-                )}
+                <FilterModal
+                    open={openFilterModal}
+                    onClose={() => setOpenFilterModal(false)}
+                    onApply={(newFilters) => setFilters({ comunidadId: newFilters.comunidadId || '', edificioId: newFilters.edificioId || '' })}
+                    currentFilters={filters}
+                    filterOptions={{
+                        comunidadId: contactos,
+                        edificioId: contactos
+                    }}
+                    filterLabels={{
+                        comunidadId: 'Comunidad',
+                        edificioId: 'Edificio'
+                    }}
+                />
             </Box>
         </PageContainer>
     );

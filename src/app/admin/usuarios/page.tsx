@@ -1,58 +1,46 @@
 "use client";
-import { CHANGE_PASSWORD, CREATE_USER, DELETE_USER, GET_ROLES, GET_USERS, UPDATE_USER } from "@/graphql/queries";
-import { useMutation, useQuery } from "@apollo/client";
-import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
+import SearchbarTools from "@/components/SearchbarTools";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Alert, Avatar, Box, Button, IconButton, InputAdornment, MenuItem, Modal, Select, Snackbar, TextField, Tooltip, Typography } from "@mui/material";
-import { DataGrid, GridAddIcon, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
+import { Alert, Avatar, Box, Button, IconButton, MenuItem, Modal, Select, TextField, Tooltip, Typography } from "@mui/material";
+import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import * as React from 'react';
 import { useMemo, useState } from "react";
-
-import { EdifitechLoading, GoogleIcon } from '@/components/CustomIcons';
+import { GoogleIcon } from '@/components/CustomIcons';
 import PageContainer from '@/components/PageContainer';
-import { User } from '@prisma/client';
+import { toast, User, useRoles, useUserHandlers, useUsers } from "@edifitech-graphql/index";
 import moment from "moment";
 import "moment/locale/es";
 
 
 export default function UsersTable() {
-  const { data, loading, error, refetch } = useQuery(GET_USERS);
-  const [createUser] = useMutation(CREATE_USER);
-  const [updateUser] = useMutation(UPDATE_USER);
-  const [deleteUser] = useMutation(DELETE_USER);
-  const [changePassword] = useMutation(CHANGE_PASSWORD);
-  const { data: rolesData } = useQuery(GET_ROLES);
+  
+  const { users, loading, error, refetch } = useUsers()
+  const { roles } = useRoles()
+  const { handleCreate, handleUpdate, handleDelete, handleChangePassword } = useUserHandlers()
+ 
+  
 
 
 
   const [openModal, setOpenModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: null });
-  const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
-  const [selectedUser, setSelectedUser] = useState<{ id: string, email: string, hasPassword: boolean } | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [open, setOpen] = useState(false);
-  const [openCsvModal, setOpenCsvModal] = useState(false);
-  const [searchText, setSearchText] = useState(''); // Estado para el texto de búsqueda
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para el texto de búsqueda
 
-  const handleCloseSnackbar = () => setSnackbar(null);
 
   if (error) return <p>Error al cargar usuarios</p>;
 
-  const users = data?.listUsers.map((user: any) => ({
-    ...user,
-    id: String(user.id),
-  })) || [];
-  const roles = rolesData?.listRoles || [];
-
 
   const filteredRows = useMemo(() => {
-    if (!searchText) return users;
+    if (!searchTerm) return users;
     return users.filter((row: User) =>
       [row.name, row.email]
-        .some((field) => field?.toLowerCase().includes(searchText.toLowerCase()))
+        .some((field) => field?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [searchText, users]);
+  }, [searchTerm, users]);
 
   function CustomToolbar() {
     return (
@@ -62,84 +50,7 @@ export default function UsersTable() {
     );
   }
 
-  // Manejar cambios en el formulario del modal
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewUser({ ...newUser, [e.target.name]: e.target.value });
-  };
-
-  const handleRoleChange = async (id: string, newRole: string) => {
-
-    try {
-      await updateUser({ variables: { id, roleId: newRole } });
-      setSnackbar({ children: "Rol actualizado correctamente", severity: "success" });
-      refetch();
-    } catch (error) {
-      console.error("Error al actualizar rol:", error);
-      setSnackbar({ children: "Error al actualizar rol", severity: "error" });
-    }
-  };
-
-  // Crear usuario en la API
-  const handleCreateUser = async () => {
-    try {
-
-      const variables: any = {
-        name: newUser.name,
-        email: newUser.email,
-      };
-
-      if (newUser.password) {
-        variables.password = newUser.password;
-      }
-
-      const response = await createUser({ variables });
-
-
-
-      setSnackbar({ children: "Usuario creado correctamente", severity: "success" });
-      setOpenModal(false);
-      setNewUser({ name: "", email: "", password: null });
-      refetch(); // Recargar datos en la tabla
-    } catch (error: any) {
-      console.error("Error al crear usuario:", error);
-      console.log("Detalles del error:", error.networkError?.result?.errors || error.message);
-      setSnackbar({ children: "Error al crear usuario", severity: "error" });
-    }
-  };
-
-
-  // Eliminar usuario
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteUser({ variables: { id } });
-      setSnackbar({ children: "Usuario eliminado correctamente", severity: "success" });
-      refetch();
-    } catch (error) {
-      console.error("Error en la eliminación:", error);
-      setSnackbar({ children: "Error al eliminar usuario", severity: "error" });
-    }
-  };
-
-  const handleEditCell = async (params: any) => {
-    try {
-      const { id, name, email, role } = params;
-      await updateUser({ variables: { id, name, email, roleId: role.id } });
-      setSnackbar({ children: `Usuario ${name} actualizado correctamente`, severity: "success" });
-      refetch();
-      return params;
-    } catch (error) {
-      console.error("Error en la actualización:", error);
-      setSnackbar({ children: "Error al actualizar usuario", severity: "error" });
-      return params.row;
-    }
-  };
-  interface UserPasswordData {
-    id: string;
-    email: string;
-    hasPassword: boolean;
-  }
-
-  const handleOpen = (user: UserPasswordData) => {
+  const handleOpen = (user: User) => {
     setSelectedUser(user);
     setOpen(true);
   };
@@ -150,22 +61,9 @@ export default function UsersTable() {
     setNewPassword("");
   };
 
-  const handleChangePassword = async () => {
-    try {
-      await changePassword({ variables: { id: selectedUser?.id, password: newPassword } });
-      setSnackbar({ children: "Nueva Contraseña Establecida", severity: "success" });
-      refetch();
-      handleClose();
-    } catch (error) {
-      console.error("Error en la actualización de contraseña:", error);
-      setSnackbar({ children: "Error al cambiar contraseña", severity: "error" });
-    }
-
-  };
 
   const handleProcessRowUpdateError = React.useCallback((error: Error) => {
-    setSnackbar({ children: error.message, severity: "error" });
-    console.error("Error al procesar la actualización de fila:", error);
+    toast(error.message,"error");
   }, []);
 
   const columns: GridColDef[] = [
@@ -213,13 +111,14 @@ export default function UsersTable() {
     {
       field: "role", headerName: "Rol",
       flex: 0.5,
-      align: "center",
-      headerAlign: "center",
+      align: "left",
+      headerAlign: "left",
       editable: true,
-      renderCell: (params) => (
+      renderCell: (params) => <>{params.value ? params.value.name : "Ninguno"}</>,
+      renderEditCell: (params) => (
         <Select
           value={params.value.id}
-          onChange={(event) => handleRoleChange(params.id as string, event.target.value)}
+          onChange={(e) => params.api.setEditCellValue({ id: params.id, field: "role", value: roles.find(role => role.id === e.target.value) })}
           fullWidth
           size="small"
         >
@@ -309,33 +208,16 @@ export default function UsersTable() {
     <PageContainer>
       <Box sx={{ flex: 1, flexDirection: 'column' }}>
         <Typography variant='h4'>Listado de Usuarios</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'right', gap: 1, mb: 4 }}>
-          <TextField
-            variant="outlined"
-            sx={{ width: "100%" }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlined />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-
-          />
-          <Button variant="contained" onClick={() => refetch()} sx={{ width: 30, color: 'white', bgcolor: 'primary.main' }}>
-            <Refresh />
-          </Button>
-          <Button variant="contained" onClick={() => setOpenModal(true)} sx={{ width: 130, color: 'white', bgcolor: 'primary.main' }}>
-            <GridAddIcon /> Nuevo
-          </Button>
-          <Button variant="contained" onClick={() => setOpenCsvModal(true)} sx={{ width: 200, color: 'white', bgcolor: 'primary.main' }}>
-            <FileUpload /> Importar CSV
-          </Button>
-        </Box>
+        <SearchbarTools
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onAdd={() => setOpenModal(true)}
+          onRefresh={() => refetch()}
+          showImport={false}
+          showFilter={false}
+          loading={loading}
+          type='Usuarios'
+        />
         {/* Botón para abrir el modal */}
 
 
@@ -348,7 +230,7 @@ export default function UsersTable() {
           pageSizeOptions={[5, 10, 20, 100]}
           editMode="row"
           getRowHeight={() => 60}
-          processRowUpdate={handleEditCell}
+          processRowUpdate={handleUpdate}
           onProcessRowUpdateError={handleProcessRowUpdateError}
           onRowEditStop={(params, event) => {
             if (params.reason === GridRowEditStopReasons.rowFocusOut) event.defaultMuiPrevented = true;
@@ -376,7 +258,7 @@ export default function UsersTable() {
               label="Nombre"
               name="name"
               value={newUser.name}
-              onChange={handleChange}
+              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
               margin="normal"
             />
             <TextField
@@ -384,7 +266,7 @@ export default function UsersTable() {
               label="Email"
               name="email"
               value={newUser.email}
-              onChange={handleChange}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
               margin="normal"
             />
             <TextField
@@ -393,10 +275,22 @@ export default function UsersTable() {
               label="Contraseña"
               name="password"
               value={newUser.password}
-              onChange={handleChange}
+              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
               margin="normal"
             />
-            <Button variant="contained" onClick={handleCreateUser} sx={{ mt: 2 }}>
+            <Button variant="contained"
+            onClick={() =>
+              handleCreate(newUser, {
+                onSuccess: () => {
+                  setOpenModal(false);
+                  setNewUser({ name: "", email: "", password: "" })
+                },
+                onError: () => {
+                  // Podés hacer algo si falla
+                },
+              })
+            }
+            sx={{ mt: 2 }}>
               Crear
             </Button>
           </Box>
@@ -422,31 +316,22 @@ export default function UsersTable() {
             <TextField
               label="Nueva contraseña"
               type="password"
+              name="password"
               fullWidth
               margin="normal"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(a) => setNewPassword(a.target.value)}
             />
             <Button
               variant="contained"
               color="primary"
               fullWidth
-              onClick={handleChangePassword}
+              onClick={() => handleChangePassword(selectedUser,newPassword)}
             >
               Guardar
             </Button>
           </Box>
         </Modal>
-
-
-        {/* Notificaciones */}
-        {!!snackbar && (
-          <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={handleCloseSnackbar} autoHideDuration={6000}>
-            <Alert severity={snackbar.severity} onClose={handleCloseSnackbar}>
-              {snackbar.children}
-            </Alert>
-          </Snackbar>
-        )}
       </Box>
     </PageContainer>
   );

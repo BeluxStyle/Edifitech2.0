@@ -2,7 +2,15 @@ import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 import { Session } from "next-auth";
 import { ComunidadInput, ContactoInput, EdificioInput, ElementoInput, InstalacionInput, ManualInput, ManualUpdateInput, ProductoInput, DocumentInput } from "@/lib/types";
-import { create } from "domain";
+import { compare } from "bcrypt"; // Para comparar contraseñas
+import jwt from "jsonwebtoken"; // Para generar tokens JWT
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../app/api/auth/[...nextauth]/authOptions';
+import { parse } from 'cookie';
+import { NextResponse, NextRequest } from "next/server";
+import { CommentInput, ReactionInput, UserNotificationCreateInput } from "@edifitech-graphql/types";
+
+
 
 
 
@@ -52,6 +60,13 @@ export const resolvers = {
         },
       });
     },
+    myNotifications: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      return prisma.userNotification.findMany({
+        where: { userId: context.session.user.id },
+        orderBy: { createdAt: "desc" },
+      });
+    },
     listUsers: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       return prisma.user.findMany({
@@ -98,7 +113,7 @@ export const resolvers = {
         include: { author: true, replies: true, reactions: true }
       });
     },
-    subscriptions: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
+    listSubscriptions: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       return prisma.subscription.findMany({
         include: {
@@ -243,21 +258,21 @@ export const resolvers = {
     },
     listInstalaciones: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("no autenticado");
-      return prisma.instalacion.findMany({ 
-        include: { 
-          edificio: { 
-            include: { 
-              comunidad: true 
-            } 
-          }, 
+      return prisma.instalacion.findMany({
+        include: {
+          edificio: {
+            include: {
+              comunidad: true
+            }
+          },
           comunidad: true,
-          elementos: { 
-            include: { 
-              producto: true 
-            } 
-          }, 
-          installerCompany: true 
-        } 
+          elementos: {
+            include: {
+              producto: true
+            }
+          },
+          installerCompany: true
+        }
       });
     },
     countInstalaciones: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
@@ -277,7 +292,7 @@ export const resolvers = {
       if (!context.session?.user?.id) throw new Error("no autenticado");
       return prisma.producto.findUnique({ where: { id } });
     },
-    listProductos: async (_parent: unknown, { searchTerm, page, pageSize, categoryId }: { searchTerm: string, page: number, pageSize: number, categoryId: string }, context: { session: Session }) => {
+    listProductos: async (_parent: unknown, { searchTerm, page, pageSize, categoryId, brandId }: { searchTerm: string, page: number, pageSize: number, categoryId: string, brandId: string }, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("no autenticado");
       const where = {
         AND: [
@@ -287,11 +302,13 @@ export const resolvers = {
                 OR: [
                   { ref: { contains: searchTerm } },
                   { descripcion: { contains: searchTerm } },
+                  { ean: { contains: searchTerm } },
                 ],
               },
             ]
             : []),
           ...(categoryId ? [{ subcategory: { categoria: { id: categoryId } } }] : []),
+          ...(brandId ? [{ brand: { id: brandId } }] : []),
         ],
       };
 
@@ -355,23 +372,23 @@ export const resolvers = {
     ) => {
       // Verificar autenticación
       if (!context.session?.user?.id) throw new Error("No autenticado");
-    
+
       // Construir el filtro dinámico
       const where = {
         AND: [
           ...(searchTerm
             ? [
-                {
-                  OR: [
-                    { name: { contains: searchTerm } }, // Buscar por nombre
-                    { description: { contains: searchTerm } }, // Buscar por descripción
-                  ],
-                },
-              ]
+              {
+                OR: [
+                  { name: { contains: searchTerm } }, // Buscar por nombre
+                  { description: { contains: searchTerm } }, // Buscar por descripción
+                ],
+              },
+            ]
             : []),
         ],
       };
-    
+
       // Consulta para obtener los manuales
       const manuals = await prisma.manual.findMany({
         where,
@@ -382,10 +399,10 @@ export const resolvers = {
           productos: true, // Incluir los productos asociados
         },
       });
-    
+
       // Contar el total de manuales que coinciden con el filtro
       const totalCount = await prisma.manual.count({ where });
-    
+
       // Retornar los resultados
       return {
         manuals,
@@ -433,7 +450,7 @@ export const resolvers = {
     },
     listContactos: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("no autenticado");
-      return prisma.contacto.findMany({ include: { comunidad: true, edificio: { include: { comunidad:true}} } });
+      return prisma.contacto.findMany({ include: { comunidad: true, edificio: { include: { comunidad: true } } } });
     },
     countContactos: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
@@ -561,7 +578,7 @@ export const resolvers = {
 
 
     // Mutations existentes
-    
+
     createUser: async (
       _parent: unknown,
       { name, email, password }: { name: string; email: string; password: string },
@@ -623,6 +640,45 @@ export const resolvers = {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       const deleted = await prisma.user.delete({ where: { id } });
       return deleted !== null;
+    },
+    markNotificationAsRead: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      return prisma.userNotification.update({
+        where: { id },
+        data: { read: true },
+      });
+    },
+    markAllNotificationsAsRead: async (_: any, __: any, context: { session: Session }) => {
+      if (!context.session?.user) throw new Error("No autenticado");
+      await prisma.userNotification.updateMany({
+        where: { userId: context.session.user.id, read: false },
+        data: { read: true },
+      });
+      return true;
+    },
+    createUserNotification: async (
+      _: any,
+      { userId, title, body, link }: UserNotificationCreateInput,
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user) throw new Error("No autenticado");
+
+      const notification = prisma.userNotification.create({
+        data: {
+          userId,
+          title,
+          body,
+          link,
+        },
+      });
+
+      
+
+      return notification
     },
     createRole: async (
       _parent: unknown,
@@ -709,8 +765,44 @@ export const resolvers = {
         },
       });
     },
-    // ... (resto de las mutations existentes)
-
+    updateSubscription: async (
+      _parent: unknown,
+      { id,
+        duration,
+        isLifetime,
+        isTrial,
+        name,
+        price }: {
+          id: string,
+          duration: number,
+          isLifetime: boolean,
+          isTrial: boolean,
+          name: string,
+          price: number
+        },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      return prisma.subscription.update({
+        where: { id },
+        data: {
+          duration,
+          isLifetime,
+          isTrial,
+          name,
+          price
+        },
+      });
+    },
+    deleteSubscription: async (
+      _parent: unknown,
+      { id }: { id: string },
+      context: { session: Session }
+    ) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      const deleted = await prisma.subscription.delete({ where: { id } });
+      return deleted !== null;
+    },
     // Nuevas mutations
     createCompany: async (
       _parent: unknown,
@@ -755,8 +847,9 @@ export const resolvers = {
       return prisma.company.update({
         where: { id: companyId },
         data: {
-          users: { connect: { id: userId }
-        }
+          users: {
+            connect: { id: userId }
+          }
         },
         include: {
           users: true, // Incluir los usuarios actualizados en la respuesta
@@ -783,7 +876,7 @@ export const resolvers = {
       });
     },
 
-    removeCommunityFromCompany : async (
+    removeCommunityFromCompany: async (
       _parent: unknown,
       { comunidadId, companyId }: {
         comunidadId
@@ -1053,12 +1146,13 @@ export const resolvers = {
       const deleted = await prisma.image.delete({ where: { id } });
       return deleted !== null;
     },
-    addComment: async (_, { authorId, comunidadId, edificioId, comment, parentId },
+    addComment: async (_, { input }: { input: CommentInput },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
+      const { comunidadId, edificioId, comment, parentId } = input
       return prisma.comment.create({
-        data: { authorId, comunidadId, edificioId, comment, parentId }
+        data: { authorId: context.session.user.id, comunidadId: comunidadId, edificioId: edificioId, comment, parentId: parentId }
       });
     },
 
@@ -1072,8 +1166,10 @@ export const resolvers = {
       });
     },
 
-    addReaction: async (_, { commentId, type }, context: { session: Session }) => {
+    addReaction: async (_, { input }: { input: ReactionInput }, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
+
+      const { commentId, type } = input
 
       const existingReaction = await prisma.reaction.findFirst({
         where: { commentId, userId: context.session.user.id }
@@ -1121,7 +1217,7 @@ export const resolvers = {
     },
     createContacto: async (
       _parent: unknown,
-      { input }: { input: ContactoInput},
+      { input }: { input: ContactoInput },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
@@ -1160,19 +1256,19 @@ export const resolvers = {
     createManual: async (_, { input }, { prisma }) => {
       try {
         const { name, url, description, productos } = input;
-    
+
         // Validar que los campos obligatorios estén presentes
         if (!name || !url) {
           throw new Error("El nombre y la URL  son obligatorios.");
         }
-    
+
         // Buscar o crear el documento asociado al manual
         let documento = await prisma.document.findUnique({ where: { url } });
         if (!documento) {
           documento = await prisma.document.create({ data: { url } });
         }
-    
-    
+
+
         // Crear el manual
         const manual = await prisma.manual.create({
           data: {
@@ -1181,8 +1277,8 @@ export const resolvers = {
             documentoId: documento.id,
           },
         });
-    
-    
+
+
         // Conectar los productos encontrados al manual
         if (productos.length > 0) {
           await prisma.manual.update({
@@ -1194,7 +1290,7 @@ export const resolvers = {
             },
           });
         }
-    
+
         return {
           success: true,
           message: "Manual creado correctamente",
@@ -1211,12 +1307,12 @@ export const resolvers = {
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
-    
+
       const { name, description, productos } = input;
-    
+
       // Extraer los IDs de los productos seleccionados
       const productoIds = productos.map((producto) => ({ id: producto.id }));
-    
+
       // Actualizar el manual
       return prisma.manual.update({
         where: { id },
@@ -1240,13 +1336,13 @@ export const resolvers = {
     ,
     updateDocument: async (
       _parent: unknown,
-      { id, input}: { id: string; input: DocumentInput },
+      { id, input }: { id: string; input: DocumentInput },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       return prisma.document.update({
         where: { id },
-        data: input ,
+        data: input,
       });
     },
     deleteDocument: async (
@@ -1259,6 +1355,64 @@ export const resolvers = {
       return deleted !== null;
     }
     ,
+    login: async (_, { email, password }, { prisma }) => {
+      try {
+        // 1. Buscar al usuario por email
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: { role: true }
+        });
+
+        if (!user || !user.password) {
+          throw new Error('Credenciales inválidas');
+        }
+
+        // 2. Verificar la contraseña
+        const isValid = await bcrypt.compare(password, user.password);
+
+        if (!isValid) {
+          throw new Error('Credenciales inválidas');
+        }
+
+        // 3. Crear un token JWT para la app móvil
+        const token = jwt.sign(
+          {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role?.name || 'user',
+          },
+          process.env.NEXTAUTH_SECRET, // Usar el mismo secret que NextAuth
+          { expiresIn: '30d' } // Token de larga duración para móvil
+        );
+
+        // 4. Actualizar lastLogin e isOnline
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date(), isOnline: true },
+        });
+
+        // 5. Devolver token y datos de usuario
+        return {
+          token,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || '',
+            image: user.image || null,
+            role: user.role?.name || 'user'
+          }
+        };
+      } catch (error) {
+        throw new Error(error.message || 'Error de autenticación');
+      }
+    }
+    ,
+    logout: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
+      if (!context.session?.user?.id) throw new Error("No autenticado");
+      // Aquí puedes implementar la lógica de cierre de sesión si es necesario
+      return true;
+    },
 
 
     // ... (añadir más mutations según sea necesario)

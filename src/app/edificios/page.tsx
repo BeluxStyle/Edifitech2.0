@@ -1,12 +1,12 @@
 'use client';
 import { EdifitechLoading } from '@/components/CustomIcons';
 import PageContainer from '@/components/PageContainer';
+import SearchbarTools from '@/components/SearchbarTools';
 import { CREATE_EDIFICIO, DELETE_EDIFICIO, GET_EDIFICIOS, UPDATE_EDIFICIO } from "@/graphql/queries";
 import { useMutation, useQuery } from "@apollo/client";
-import { FileUpload, Refresh, SearchOutlined } from '@mui/icons-material';
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Alert, Box, Button, IconButton, InputAdornment, Modal, Snackbar, TextField, Typography } from "@mui/material";
-import { DataGrid, GridAddIcon, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
+import { Alert, Box, Button, IconButton, Modal, Snackbar, TextField, Typography } from "@mui/material";
+import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import { Edificio } from '@prisma/client';
 import moment from 'moment';
@@ -26,7 +26,7 @@ export default function EdificiosTable() {
   const [newEdificio, setNewEdificio] = useState({ name: "" });
   const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
   const [openCsvModal, setOpenCsvModal] = useState(false);
-  const [searchText, setSearchText] = useState(''); // Estado para el texto de búsqueda
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para el texto de búsqueda
 
   const handleCloseSnackbar = () => setSnackbar(null);
 
@@ -35,12 +35,12 @@ export default function EdificiosTable() {
   })) || [];
 
   const filteredRows = useMemo(() => {
-    if (!searchText) return edificios;
+    if (!searchTerm) return edificios;
     return edificios.filter((row: Edificio) =>
       [row.name]
-        .some((field) => field?.toLowerCase().includes(searchText.toLowerCase()))
+        .some((field) => field?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [searchText, edificios]);
+  }, [searchTerm, edificios]);
 
   function CustomToolbar() {
     return (
@@ -176,33 +176,16 @@ export default function EdificiosTable() {
     <PageContainer>
     <Box sx={{ flex: 1, flexDirection: 'column' }}>
       <Typography variant='h4'>Listado de Edificios</Typography>
-      <Box sx={{ display: 'flex', alignItems: 'right', gap: 1, mb: 4 }}>
-        <TextField
-          variant="outlined"
-          sx={{ width: "100%" }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchOutlined />
-                </InputAdornment>
-              ),
-            },
-          }}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-
+      <SearchbarTools
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onAdd={() => setOpenModal(true)}
+          onRefresh={() => refetch()}
+          showImport={false}
+          showFilter={false}
+          loading={loading}
+          type='Edificios'
         />
-        <Button variant="contained" onClick={() => refetch()} sx={{ width: 30, color: 'white', bgcolor: 'primary.main' }}>
-          <Refresh />
-        </Button>
-        <Button variant="contained" onClick={() => setOpenModal(true)} sx={{ width: 130, color: 'white', bgcolor: 'primary.main' }}>
-          <GridAddIcon /> Nuevo
-        </Button>
-        <Button variant="contained" onClick={() => setOpenCsvModal(true)} sx={{ width: 200, color: 'white', bgcolor: 'primary.main' }}>
-          <FileUpload /> Importar CSV
-        </Button>
-      </Box>
       {/* Botón para abrir el modal */}
 
 

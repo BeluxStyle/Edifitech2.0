@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 
 const nextConfig: NextConfig = {
-    
+
 
     webpack(config) {
         // Grab the existing rule that handles SVG imports
@@ -56,6 +56,19 @@ module.exports = {
             },
             {
                 protocol: 'https',
+                hostname: 'www.golmar-seguridad.es',
+                pathname: '**'
+            },
+            {
+                protocol: "https",
+                hostname: "**",
+            },
+            {
+                protocol: "http",
+                hostname: "**",
+            },
+            {
+                protocol: 'https',
                 hostname: 'golmar.es',
                 pathname: '**'
             },
@@ -76,4 +89,4 @@ module.exports = {
             }
         ]
     },
-  }
+}
