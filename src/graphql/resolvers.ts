@@ -10,6 +10,8 @@ import { Session } from "next-auth";
 
 
 
+
+
 const prisma = new PrismaClient();
 
 export const resolvers = {
@@ -39,6 +41,12 @@ export const resolvers = {
         ? `${parent.comunidad.name} - ${parent.name}`
         : parent.name; // Si no tiene brand, usa solo la ref
     }
+  },
+  Subscription: {
+    notificationReceived: {
+      subscribe: (_: any, { userId }: { userId: string }) =>
+        pubsub.asyncIterator(`NOTIFICATION_${userId}`),
+    },
   },
   Query: {
 
@@ -671,6 +679,7 @@ export const resolvers = {
           link,
         },
       });
+
 
       return notification
     },

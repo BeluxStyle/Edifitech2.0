@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"; // Correcto para App Router
 
 
 
+
 const pages = ['Dashboard','Comunidades', 'Productos','Manuales'];
 const settings = ['Perfil', 'Configuración', 'Mensajes', 'Logout'];
 

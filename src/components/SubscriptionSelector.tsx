@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
-import { useQuery, useMutation } from "@apollo/client";
-import { GET_SUBSCRIPTIONS } from "../graphql/queries";
+import { Subscription, useSubscriptions } from "@edifitech-graphql/index";
 
 interface SubscriptionSelectorProps {
   companyId: string;
@@ -12,7 +11,7 @@ const SubscriptionSelector: React.FC<SubscriptionSelectorProps> = ({ companyId, 
   const [selectedSubscription, setSelectedSubscription] = useState("");
   // Aquí puedes usar la función useMutation para actualizar la suscripción en el backend
   // const [updateSubscription] = useMutation(UPDATE_SUBSCRIPTION);
-  const { data, loading, error } = useQuery(GET_SUBSCRIPTIONS);
+  const { subscriptions: subscriptionsList, loading, error } = useSubscriptions()
 
   const handleChange = (event: any) => {
     setSelectedSubscription(event.target.value);
@@ -26,7 +25,7 @@ const SubscriptionSelector: React.FC<SubscriptionSelectorProps> = ({ companyId, 
       <FormControl fullWidth>
         <InputLabel>Suscripción</InputLabel>
         <Select value={selectedSubscription} onChange={handleChange} label="Suscripción">
-          {data?.subscriptions?.map((subscription) => (
+          {subscriptionsList?.map((subscription: Subscription) => (
             <MenuItem key={subscription.id} value={subscription.id}>
               {subscription?.name}
             </MenuItem>

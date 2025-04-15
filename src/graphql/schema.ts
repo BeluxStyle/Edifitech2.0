@@ -282,6 +282,17 @@ type UserNotification {
   user: User!
 }
 
+type Notification {
+  id: ID!
+  message: String!
+  userId: String!
+  createdAt: String!
+}
+
+type Subscription {
+  notificationReceived(userId: ID!): Notification
+}
+
 
 # ... Añadir más tipos según sea necesario
 

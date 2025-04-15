@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { List, ListItem, ListItemText, IconButton, TextField, Button, Select, MenuItem, InputLabel, FormControl } from "@mui/material";
-import { useMutation, useQuery } from "@apollo/client";
-import { ADD_COMMUNITY_TO_COMPANY, REMOVE_COMMUNITY_FROM_COMPANY, GET_COMUNIDADES } from "@/graphql/queries";
+import { Comunidad, useCompanyHandlers, useComunidades } from "@edifitech-graphql/index";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -18,37 +17,9 @@ const CommunityManagement: React.FC<CommunityManagementProps> = ({ companyId, co
     
     const [ListCommunities, setListCommunities] = useState(communities);
     const [newCommunity, setNewCommunity] = useState("");
-    const [addCommunityToCompany] = useMutation(ADD_COMMUNITY_TO_COMPANY, {
-        refetchQueries: ["ListCompanies"]
-    });
-    const [removeCommunityFromCompany] = useMutation(REMOVE_COMMUNITY_FROM_COMPANY, {
-        refetchQueries: ["ListCompanies"]
-    });
-    const { data } = useQuery(GET_COMUNIDADES);
+    const {handleAddCommunity, handleRemoveCommunity} = useCompanyHandlers()
+    const {comunidades} = useComunidades()
 
-    const handleAddCommunity = async () => {
-        if (!newCommunity.trim()) return;
-        try {
-            const response = await addCommunityToCompany({
-                variables: { companyId, comunidadId: newCommunity },
-            });
-            setListCommunities(response.data.addCommunityToCompany.comunidades)
-            setNewCommunity(""); // Limpiar el campo
-        } catch (error) {
-            console.error("Error al añadir comunidad:", error);
-        }
-    };
-
-    const handleRemoveCommunity = async (communityId: string) => {
-        try {
-            const response = await removeCommunityFromCompany({
-                variables: { companyId, comunidadId: communityId },
-            });
-            setListCommunities(response.data.removeCommunityFromCompany.comunidades)
-        } catch (error) {
-            console.error("Error al eliminar comunidad:", error);
-        }
-    };
 
     return (
         <>
@@ -57,7 +28,7 @@ const CommunityManagement: React.FC<CommunityManagementProps> = ({ companyId, co
                 {ListCommunities.map((community) => (
                     <ListItem key={community.id}>
                         <ListItemText primary={community.name} />
-                        <IconButton color="error" onClick={() => handleRemoveCommunity(community.id)}>
+                        <IconButton color="error" onClick={() => handleRemoveCommunity(community.id, companyId)}>
                             <DeleteIcon />
                         </IconButton>
                     </ListItem>
@@ -74,14 +45,14 @@ const CommunityManagement: React.FC<CommunityManagementProps> = ({ companyId, co
                         onChange={(e) => setNewCommunity(e.target.value)}
                         label="Seleccionar Usuario"
                     >
-                        {data?.listComunidades?.map((comunidad) => (
+                        {comunidades?.map((comunidad: Comunidad) => (
                             <MenuItem key={comunidad.id} value={comunidad.id}>
                                 {comunidad.name}
                             </MenuItem>
                         ))}
                     </Select>
                 </FormControl>
-                <Button variant="contained" onClick={handleAddCommunity} startIcon={<AddIcon />}>
+                <Button variant="contained" onClick={() =>handleAddCommunity(newCommunity, companyId)} startIcon={<AddIcon />}>
                     Añadir
                 </Button>
             </div>
