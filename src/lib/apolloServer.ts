@@ -11,7 +11,7 @@ interface MyContext {
 }
 
 let apolloServer: ApolloServer<MyContext> | null = null;
-let serverStarted = false;
+
 
 export async function getApolloServer(): Promise<ApolloServer<MyContext>> {
   if (!apolloServer) {
@@ -21,10 +21,8 @@ export async function getApolloServer(): Promise<ApolloServer<MyContext>> {
     });
   }
 
-  if (!serverStarted) {
-    await apolloServer.start();
-    serverStarted = true;
-  }
+  await apolloServer.start();
+
 
   return apolloServer;
 }
