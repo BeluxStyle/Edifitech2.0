@@ -2,8 +2,6 @@
 import { EdifitechLoading } from '@/components/CustomIcons';
 import PageContainer from '@/components/PageContainer';
 import SearchbarTools from '@/components/SearchbarTools';
-import { CREATE_EDIFICIO, DELETE_EDIFICIO, GET_EDIFICIOS, UPDATE_EDIFICIO } from "@/graphql/queries";
-import { useMutation, useQuery } from "@apollo/client";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Alert, Box, Button, IconButton, Modal, Snackbar, TextField, Typography } from "@mui/material";
 import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
@@ -13,26 +11,17 @@ import moment from 'moment';
 import "moment/locale/es";
 import * as React from 'react';
 import { useMemo, useState } from "react";
+import { toast, useEdificios, useEdificioHandlers } from '@edifitech-graphql/index';
 moment().locale('es');
 
 export default function EdificiosTable() {
 
-  const { data, loading, error, refetch } = useQuery(GET_EDIFICIOS);
-  const [createEdificio] = useMutation(CREATE_EDIFICIO);
-  const [updateEdificio] = useMutation(UPDATE_EDIFICIO);
-  const [deleteEdificio] = useMutation(DELETE_EDIFICIO);
+  const { edificios, loading, error, refetch } = useEdificios();
+  const {handleCreate, handleDelete, handleUpdate} = useEdificioHandlers()
 
   const [openModal, setOpenModal] = useState(false);
   const [newEdificio, setNewEdificio] = useState({ name: "" });
-  const [snackbar, setSnackbar] = useState<{ children: string; severity: "success" | "error" } | null>(null);
-  const [openCsvModal, setOpenCsvModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState(''); // Estado para el texto de búsqueda
-
-  const handleCloseSnackbar = () => setSnackbar(null);
-
-  const edificios = data?.listEdificios.map((edificio: any) => ({
-    ...edificio,
-  })) || [];
 
   const filteredRows = useMemo(() => {
     if (!searchTerm) return edificios;
@@ -55,58 +44,18 @@ export default function EdificiosTable() {
   };
 
   const handleProcessRowUpdateError = React.useCallback((error: Error) => {
-    setSnackbar({ children: error.message, severity: "error" });
+    toast(error.message,"error");
     console.error("Error al procesar la actualización de fila:", error);
   }, []);
 
 
   const handleEditCell = async (params: any) => {
-    try {
-      const { id, name, direccion, cp } = params;
-      await updateEdificio({ variables: { id, input: {name, direccion, cp} } });
-      setSnackbar({ children: `Marca ${name} actualizado correctamente`, severity: "success" });
-      refetch();
-      return params;
-    } catch (error) {
-      console.error("Error en la actualización:", error);
-      setSnackbar({ children: "Error al actualizar usuario", severity: "error" });
-      return params.row;
-    }
+    handleUpdate(params)
+    return params
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteEdificio({ variables: { id } });
-      setSnackbar({ children: "Marca eliminado correctamente", severity: "success" });
-      refetch();
-    } catch (error) {
-      console.error("Error en la eliminación:", error);
-      setSnackbar({ children: "Error al eliminar Marca", severity: "error" });
-    }
-  };
 
-  const handleCreate = async () => {
-    try {
-
-      const variables: any = {
-        input: newEdificio,
-      };
-
-
-      const response = await createEdificio({ variables });
-
-      console.log("Respuesta del servidor:", response); // 🔍 Imprimir la respuesta
-
-      setSnackbar({ children: "Usuario creado correctamente", severity: "success" });
-      setOpenModal(false);
-      setNewEdificio({ name: "" });
-      refetch(); // Recargar datos en la tabla
-    } catch (error: any) {
-      console.error("Error al crear usuario:", error);
-      console.log("Detalles del error:", error.networkError?.result?.errors || error.message);
-      setSnackbar({ children: "Error al crear usuario", severity: "error" });
-    }
-  };
+ 
 
 
   const columns: GridColDef[] = [
@@ -228,22 +177,18 @@ export default function EdificiosTable() {
             onChange={handleChange}
             margin="normal"
           />
-          <Button variant="contained" onClick={handleCreate} sx={{ mt: 2 }}>
+          <Button variant="contained" 
+          onClick={()=>
+          handleCreate(newEdificio, {
+            onSuccess() {
+              setOpenModal(false)
+            },
+          })
+          } sx={{ mt: 2 }}>
             Crear
           </Button>
         </Box>
       </Modal>
-
-      
-
-      {/* Notificaciones */}
-      {!!snackbar && (
-        <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }} onClose={handleCloseSnackbar} autoHideDuration={6000}>
-          <Alert severity={snackbar.severity} onClose={handleCloseSnackbar}>
-            {snackbar.children}
-          </Alert>
-        </Snackbar>
-      )}
     </Box>
     </PageContainer>
   );

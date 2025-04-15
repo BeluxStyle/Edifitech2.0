@@ -1,14 +1,19 @@
 import type { NextConfig } from "next";
-
+import type { Configuration, RuleSetRule } from "webpack";
 
 const nextConfig: NextConfig = {
-
-
     webpack(config) {
         // Grab the existing rule that handles SVG imports
-        const fileLoaderRule = config.module.rules.find((rule) =>
-            rule.test?.test?.('.svg'),
-        )
+        const fileLoaderRule = config.module.rules.find((rule: RuleSetRule) => {
+            if (rule.test instanceof RegExp) {
+                return rule.test.test('.svg');
+            }
+            return false;
+        });
+
+        if (!fileLoaderRule) {
+            throw new Error('Could not find file loader rule for SVG');
+        }
 
         config.module.rules.push(
             // Reapply the existing rule, but only for svg imports ending in ?url
@@ -21,22 +26,21 @@ const nextConfig: NextConfig = {
             {
                 test: /\.svg$/i,
                 issuer: fileLoaderRule.issuer,
-                resourceQuery: { not: [...fileLoaderRule.resourceQuery.not, /url/] }, // exclude if *.svg?url
+                resourceQuery: { not: [...(fileLoaderRule.resourceQuery?.not || []), /url/] }, // exclude if *.svg?url
                 use: ['@svgr/webpack'],
             },
-        )
+        );
 
         // Modify the file loader rule to ignore *.svg, since we have it handled now.
-        fileLoaderRule.exclude = /\.svg$/i
+        fileLoaderRule.exclude = /\.svg$/i;
 
-        return config
+        return config;
     },
-
 };
 
-export default nextConfig;
-
-module.exports = {
+// Merge configs
+const finalConfig = {
+    ...nextConfig,
     eslint: {
         // Warning: This allows production builds to successfully complete even if
         // your project has ESLint errors.
@@ -89,4 +93,6 @@ module.exports = {
             }
         ]
     },
-}
+};
+
+export default finalConfig;
