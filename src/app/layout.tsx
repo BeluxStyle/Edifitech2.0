@@ -45,7 +45,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
                       {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
                       <CssBaseline />
                       
-                      {props.children}ç
+                      {props.children}
                       
                       <CookieConsent />
                     </ConfirmDialogProvider>

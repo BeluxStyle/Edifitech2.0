@@ -4,6 +4,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { SessionStrategy } from "next-auth/core/types";
+import { toast } from '@edifitech-graphql/index';
 
 
 export const authOptions = {
@@ -30,6 +31,9 @@ export const authOptions = {
         if (!user || !user.password) return null;
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
+          toast("Contraseña incorrecta", "error")
+        }
         return isValid ? user : null;
       }
     })

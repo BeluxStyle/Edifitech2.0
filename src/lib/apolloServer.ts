@@ -10,15 +10,21 @@ interface MyContext {
   res: NextApiResponse;
 }
 
-let apolloServer: ApolloServer<MyContext>;
+let apolloServer: ApolloServer<MyContext> | null = null;
+let serverStarted = false;
 
-export function getApolloServer() {
+export async function getApolloServer(): Promise<ApolloServer<MyContext>> {
   if (!apolloServer) {
     apolloServer = new ApolloServer<MyContext>({
       typeDefs,
       resolvers,
-      
     });
   }
+
+  if (!serverStarted) {
+    await apolloServer.start();
+    serverStarted = true;
+  }
+
   return apolloServer;
 }
