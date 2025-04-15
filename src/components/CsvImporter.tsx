@@ -26,8 +26,8 @@ const CsvImporter: React.FC<CsvImporterProps> = ({ fields, onImport }) => {
   const [columnMapping, setColumnMapping] = useState<{ [key: string]: string }>({});
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState<Brand>(null); // Marca seleccionada
-  const [selectedCategory, setSelectedCategory] = useState<Subcategory>(null); // Categoría seleccionada
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null); // Marca seleccionada
+  const [selectedCategory, setSelectedCategory] = useState<Subcategory | null>(null); // Categoría seleccionada
 
   // Consultas para obtener marcas y categorías
   const { brands, loading: brandsLoading, error: brandsError } = useBrands()

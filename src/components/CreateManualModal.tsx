@@ -52,6 +52,7 @@ const CreateManualModal: React.FC<CreateManualModalProps> = ({
       }
 
       const formattedProductos = formData.selectedProducts.map((producto: { id: string }) => ({ id: producto.id }));
+      console.log("Productos: ",formattedProductos)
 
       // Llamar a la función onCreate con los datos del formulario
       onCreate({
@@ -118,7 +119,7 @@ const CreateManualModal: React.FC<CreateManualModalProps> = ({
             renderTags={(value, getTagProps) =>
               value.map((product, index) => (
                 <Chip
-                  key={product.id}
+                  
                   label={`${product.ref} - ${product.descripcion}`}
                   {...getTagProps({ index })}
                 />

@@ -14,7 +14,7 @@ export default function ComunidadPage() {
 
   
   const params = useParams();
-  const id = params.id as string;
+  const id = params?.id as string;
 
   const { comunidad, loading, error, refetch } = useComunidad(id)
  

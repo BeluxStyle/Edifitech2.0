@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Breadcrumbs, Typography } from "@mui/material";
 
 export default function BreadcrumbsNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
 
   // Dividir la ruta en partes y generar los breadcrumbs
   const pathSegments = pathname.split("/").filter(segment => segment);

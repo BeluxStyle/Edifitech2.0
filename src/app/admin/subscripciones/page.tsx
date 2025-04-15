@@ -1,19 +1,17 @@
 'use client';
 import PageContainer from '@/components/PageContainer';
 import SearchbarTools from '@/components/SearchbarTools';
-import { CREATE_SUBSCRIPTION, DELETE_SUBSCRIPTION, GET_SUBSCRIPTIONS, UPDATE_SUBSCRIPTION } from "@/graphql/queries";
 import { Subscription, UserSubscription } from '@/lib/types';
 import { stringToColor } from '@/util/utils';
-import { useMutation, useQuery } from "@apollo/client";
+import { toast, useSubscriptionHandlers, useSubscriptions } from '@edifitech-graphql/index';
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Alert, Avatar, AvatarGroup, Box, Button, IconButton, Modal, Snackbar, TextField, Typography } from "@mui/material";
+import { Alert, Avatar, AvatarGroup, Box, Button, IconButton, Modal, TextField, Typography } from "@mui/material";
 import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import moment from 'moment';
 import "moment/locale/es";
 import * as React from 'react';
 import { useMemo, useState } from "react";
-import { toast, useSubscriptions, useSubscriptionHandlers } from '@edifitech-graphql/index';
 moment().locale('es');
 
 export default function SubscriptionsTable() {
@@ -90,10 +88,9 @@ export default function SubscriptionsTable() {
             {params.row.userSubscriptions?.map((userSubscription: UserSubscription) => (
               <Avatar
                 sx={{ bgcolor: stringToColor(userSubscription.user?.name ? userSubscription.user?.name : userSubscription.user?.id) }}
-                alt={userSubscription.user?.name}
+                alt={userSubscription.user?.name || ''}
                 key={userSubscription.user?.id}
-                src={userSubscription.user?.image}
-
+                src={userSubscription.user?.image || undefined}
               />
             ))}
           </AvatarGroup>

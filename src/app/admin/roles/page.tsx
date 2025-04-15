@@ -87,10 +87,9 @@ export default function RolesTable() {
             {params.row.users?.map((user: User) => (
               <Avatar
                 sx={{ bgcolor: stringToColor(user.name ? user.name : user.id) }}
-                alt={user.name}
+                alt={user.name || undefined}
                 key={user.id}
-                src={user.image}
-
+                src={user.image || undefined}
               />
             ))}
           </AvatarGroup>

@@ -74,18 +74,18 @@ const Navbar: React.FC = () => {
 
   }
 
-  const ColorLevel = (role: Rol) => {
+  const ColorLevel = (level) => {
     
-    if (1 >= role?.level) {
+    if (1 >= level) {
       return 'primary';
     }
-    if (2 >= role?.level) {
+    if (2 >= level) {
       return 'info';
     }
-    if (5 >= role?.level) {
+    if (5 >= level) {
       return 'secondary';
     }
-    if (99 >= role?.level) {
+    if (99 >= level) {
       return 'warning';
     }
     else {
@@ -97,7 +97,7 @@ const Navbar: React.FC = () => {
 
 
   return (
-    <AppBar position="sticky" color={ColorLevel(user?.role) || 'primary'}>
+    <AppBar position="sticky" color={ColorLevel(user?.role?.level) || 'primary'}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <Typography

@@ -1,6 +1,6 @@
 
 import { AntenaIcon, AutomaticDoorIcon, CCTVIcon, ElectricityIcon, FireEstinguisherIcon, IntercomIcon, KeyIcon } from "@/components/CustomIcons";
-import { EdificioInput, toast, useCategories, useCommentHandlers, useContactoHandlers, useEdificioHandlers, useElementoHandlers, useInstalacionHandlers, useProducts } from "@edifitech-graphql/index";
+import { EdificioInput, Instalacion, Manual, toast, useCategories, useCommentHandlers, useContactoHandlers, useEdificioHandlers, useElementoHandlers, useInstalacionHandlers, useProducts } from "@edifitech-graphql/index";
 import { Add, CircleNotifications, Delete, Description, FileOpen, Phone, Remove } from "@mui/icons-material";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import { Badge, Box, Button, Card, CardContent, Checkbox, Divider, FormControl, IconButton, InputLabel, List, ListItem, ListItemButton, ListItemIcon, ListItemText, MenuItem, Modal, Pagination, Select, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Tooltip, TooltipProps, Typography, tooltipClasses } from "@mui/material";
@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation"; // Correcto para App Router
 import { useEffect, useMemo, useState } from "react";
 import CommentsList from "./CommentList";
 import ContactosModal from "./ContactosModal";
+import ManualsModal from "./ManualsModal"
+
 moment().locale('es');
 
 
@@ -50,6 +52,7 @@ export default function DetalleComunidad({ comunidad }) {
     const tiposInstalacion = categories || [];
 
     const [tabIndex, setTabIndex] = useState(0);
+    const [product, setProduct] = useState();
     const [manuals, setManuals] = useState([]);
     const [modalManuals, setModalManuals] = useState(false);
     const [modalComment, setModalComment] = useState(false);
@@ -60,8 +63,8 @@ export default function DetalleComunidad({ comunidad }) {
     const [newEdificio, setNewEdificio] = useState("");
     const [newInstalacion, setNewInstalacion] = useState({ tipo: "", descripcion: "", categoryId: "", comunidadId: comunidad.id });
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedProducts, setSelectedProducts] = useState([]);
-    const [selectedInstalacion, setSelectedInstalacion] = useState(null);
+    const [selectedProducts, setSelectedProducts] = useState<Array<any>>([]);
+    const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null);
 
     const [role, setRole] = useState(0);
     useEffect(() => {
@@ -123,7 +126,7 @@ export default function DetalleComunidad({ comunidad }) {
     };
 
     useEffect(() => {
-        setFilters({ ...filters, categoryId: selectedInstalacion?.category?.id })
+        setFilters({ ...filters, categoryId: selectedInstalacion?.category?.id || '' })
     }, [selectedInstalacion]);
 
 
@@ -135,7 +138,7 @@ export default function DetalleComunidad({ comunidad }) {
             if (exists) {
                 return prev.filter(p => p.id !== producto.id);
             }
-            return [...prev, { ...producto, quantity: 1, instalacionId: selectedInstalacion.id }];
+            return [...prev, { ...producto, quantity: 1, instalacionId: selectedInstalacion?.id }];
         });
     };
 
@@ -168,8 +171,9 @@ export default function DetalleComunidad({ comunidad }) {
         })
     };
 
-    const handleShowManuals = (manuales) => {
-        setManuals(manuales);
+    const handleShowManuals = (product) => {
+        setManuals(product.manuals)
+        setProduct(product);
         setModalManuals(true);
     };
 
@@ -179,7 +183,7 @@ export default function DetalleComunidad({ comunidad }) {
     };
 
     const handleAddElements = async () => {
-        if (!selectedInstalacion.id || selectedProducts.length === 0) {
+        if (!selectedInstalacion?.id || selectedProducts.length === 0) {
             toast("Debe seleccionar una instalación y al menos un producto.", "error");
             return;
         }
@@ -303,7 +307,18 @@ export default function DetalleComunidad({ comunidad }) {
                                                 <TableCell>{edificio.instalaciones.map((inst, index) => (
                                                     <span key={index} style={{ marginRight: 8 }}>{getInstalacionIcon(inst.tipo)}</span>
                                                 ))}</TableCell>
-                                                <TableCell align="right"><IconButton size="small" color="error" disabled={!hasAccess} onClick={() => handleDeleteEd(edificio.id)}><Delete /></IconButton></TableCell>
+                                                <TableCell align="right">
+                                                    <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        disabled={!hasAccess}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(),
+                                                                handleDeleteEd(edificio.id)
+                                                        }}>
+                                                        <Delete />
+                                                    </IconButton>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
 
@@ -411,7 +426,7 @@ export default function DetalleComunidad({ comunidad }) {
                                                 <TableCell>{row.producto?.brand?.name}</TableCell>
                                                 <TableCell>{row.producto?.descripcion}</TableCell>
                                                 <TableCell align="center">
-                                                    <IconButton size="small" color={row.producto?.manuals.length ? "primary" : "default"} onClick={() => handleShowManuals(row.producto?.manuals)}>
+                                                    <IconButton size="small" color={row.producto?.manuals.length ? "primary" : "default"} onClick={() => handleShowManuals(row.producto)}>
                                                         <Badge badgeContent={row.producto?.manuals.length} color="primary">
                                                             <Description />
                                                         </Badge>
@@ -456,43 +471,7 @@ export default function DetalleComunidad({ comunidad }) {
                     <Button variant="outlined" sx={{ mt: 2 }} onClick={handleAddEdificio}>Guardar</Button>
                 </Box>
             </Modal>
-            <Modal open={Boolean(modalManuals)} onClose={() => setModalManuals(null)}>
-                <Box sx={{ p: 3, backgroundColor: "white", width: 500, margin: "auto", mt: 10 }}>
-                    <Typography variant="h6">Manuales</Typography>
-
-                    {/* Verifica si hay manuales disponibles */}
-                    {manuals.length > 0 ? (
-                        <List dense={true}>
-                            {manuals.map((manual, index) => (
-                                <ListItem key={index} >
-                                    <ListItemButton href={manual.documento?.url} target="_blank">
-                                        <ListItemIcon>
-                                            <FileOpen />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary={manual.name}
-                                            secondary={
-                                                manual.documento?.url || "URL no disponible" // Maneja casos donde url no existe
-                                            }
-                                        />
-                                    </ListItemButton>
-                                </ListItem>
-                            ))}
-                        </List>
-                    ) : (
-                        <Typography sx={{ mt: 2 }}>No hay manuales disponibles.</Typography>
-                    )}
-
-                    {/* Botón para cerrar el modal */}
-                    <Button
-                        variant="outlined"
-                        sx={{ mt: 2 }}
-                        onClick={() => setModalManuals(null)}
-                    >
-                        Cerrar
-                    </Button>
-                </Box>
-            </Modal>
+            
             {/* Modal para agregar elemento */}
             <Modal open={modalElement} onClose={() => setModalElement(false)}>
                 <Box sx={{ p: 3, backgroundColor: "white", width: 800, margin: "auto", mt: 10 }}>
@@ -561,6 +540,12 @@ export default function DetalleComunidad({ comunidad }) {
                     )}
                 </Box>
             </Modal>
+            <ManualsModal
+                modalOpen={modalManuals}
+                setModalOpen={setModalManuals}
+                product={product}
+                manuals={manuals}
+            />
             <ContactosModal
                 modalOpen={modalContactos}
                 setModalOpen={setModalContactos}

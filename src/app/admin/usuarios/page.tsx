@@ -24,7 +24,7 @@ export default function UsersTable() {
 
 
   const [openModal, setOpenModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: null });
+  const [newUser, setNewUser] = useState({ name: "", email: "", password: "" });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [open, setOpen] = useState(false);
@@ -326,7 +326,7 @@ export default function UsersTable() {
               variant="contained"
               color="primary"
               fullWidth
-              onClick={() => handleChangePassword(selectedUser,newPassword)}
+              onClick={() => selectedUser && handleChangePassword(selectedUser, newPassword)}
             >
               Guardar
             </Button>

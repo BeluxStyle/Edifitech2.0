@@ -1,10 +1,9 @@
-import { CommentInput, ReactionInput, useCommentHandlers } from "@edifitech-graphql/index";
+import { Comment, CommentInput, ReactionInput, useCommentHandlers } from "@edifitech-graphql/index";
 import { Delete, Reply, ThumbUp } from "@mui/icons-material";
 import { Avatar, Badge, Box, Button, Collapse, IconButton, Modal, TextField, Tooltip, Typography } from "@mui/material";
 import moment from "moment";
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from "react";
-import useConfirm from "./../util/useConfirm";
 import ConfirmDialog from "./ConfirmDialog";
 
 
@@ -21,11 +20,11 @@ const reactionTypes = [
 const CommentsList = ({ comments, size }) => {
   const { data: session } = useSession();
 
-  const { confirmData, showConfirm, closeConfirm } = useConfirm();
-  const [openTooltip, setOpenTooltip] = useState(null);
+
+  const [openTooltip, setOpenTooltip] = useState<string | null>(null);
   const [modalReply, setModalReply] = useState(false);
   const [newComment, setNewComment] = useState<CommentInput>({ comment: "", parentId: "" });
-  const [commentReply, setCommentReply] = useState(null);
+  const [commentReply, setCommentReply] = useState<Comment>();
   const [newReaction, setNewReaction] = useState<ReactionInput>({ commentId: "", type: "" })
   const [expandedComments, setExpandedComments] = useState({});
   const [role, setRole] = useState(0);
@@ -67,7 +66,7 @@ const CommentsList = ({ comments, size }) => {
   return (
     <Box sx={{ maxHeight: size, overflow: "auto" }}>
       {sortedComments.length > 0 ? (
-        sortedComments.map((comment) => (
+        sortedComments.map((comment:Comment) => (
           <Box key={comment.id}>
             {/* Comentario Principal */}
             <Box sx={{
@@ -101,7 +100,7 @@ const CommentsList = ({ comments, size }) => {
                   title={
                     <Box sx={{ display: "flex", gap: 0.5 }}>
                       {reactionTypes.map(({ emoji, type }) => (
-                        <Badge key={type} badgeContent={comment.reactions.filter(r => r.type === type).length} overlap="circular" color="primary">
+                        <Badge key={type} badgeContent={comment.reactions?.filter(r => r.type === type).length} overlap="circular" color="primary">
                           <IconButton disabled={!addAccess} sx={{ fontSize: 20 }} onClick={() => { setNewReaction({ commentId: comment.id, type: type })}}>
                             {emoji}
                           </IconButton>
@@ -114,14 +113,14 @@ const CommentsList = ({ comments, size }) => {
                   disableFocusListener
                   disableTouchListener
                 >
-                  <Badge badgeContent={comment.reactions.length} color="primary">
-                    <IconButton disabled={comment.author.id === session?.user.id} size="small" onClick={() => setOpenTooltip(comment.id)}>
+                  <Badge badgeContent={comment.reactions?.length} color="primary">
+                    <IconButton disabled={comment.author.id === session?.user?.id} size="small" onClick={() => setOpenTooltip(comment?.id)}>
                       <ThumbUp sx={{ fontSize: 20 }} />
                     </IconButton>
                   </Badge>
                 </Tooltip>
 
-                <IconButton disabled={adminAccess ? !adminAccess : comment.author.id !== session?.user.id} size="small" color="error" onClick={() => handleDelete(comment.id)}>
+                <IconButton disabled={adminAccess ? !adminAccess : comment.author.id !== session?.user?.id} size="small" color="error" onClick={() => handleDelete(comment.id)}>
                   <Delete fontSize="small" />
                 </IconButton>
               </Box>
@@ -139,7 +138,7 @@ const CommentsList = ({ comments, size }) => {
                       </Typography>
                       <Typography variant="body2">{reply.comment}</Typography>
                     </Box>
-                    <IconButton disabled={adminAccess ? !adminAccess : reply.author.id !== session?.user.id} size="small" color="error" onClick={() => handleDelete(reply.id)}>
+                    <IconButton disabled={adminAccess ? !adminAccess : reply.author.id !== session?.user?.id} size="small" color="error" onClick={() => handleDelete(reply.id)}>
                       <Delete fontSize="small" />
                     </IconButton>
                   </Box>
@@ -160,7 +159,7 @@ const CommentsList = ({ comments, size }) => {
             rows={3}
             sx={{ mt: 2 }}
             value={newComment.comment}
-            onChange={(e) => setNewComment({ comment: e.target.value, parentId: commentReply.id })}
+            onChange={(e) => setNewComment({ comment: e.target.value, parentId: commentReply?.id || "" })}
           />
           <Button variant="outlined" sx={{ mt: 2 }}
             onClick={() =>
@@ -172,13 +171,6 @@ const CommentsList = ({ comments, size }) => {
               })}>Enviar</Button>
         </Box>
       </Modal>
-      <ConfirmDialog
-        open={confirmData.open}
-        onClose={closeConfirm}
-        onConfirm={confirmData.onConfirm}
-        title={confirmData.title}
-        message={confirmData.message}
-      />
     </Box>
   );
 };

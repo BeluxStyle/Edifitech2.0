@@ -41,7 +41,7 @@ const DashboardPage = () => {
 
   const sections = [
     { name: 'Perfil', icon: <AccountCircle sx={colorHover} />, link: '/profile', role: 0 },
-    { name: 'Avisos', icon: <AssignmentLate sx={colorHover} />, link: '/avisos', role: 2, count: stats?.avisos },
+    { name: 'Avisos', icon: <AssignmentLate sx={colorHover} />, link: '/avisos', role: 2 },
     { name: 'Comunidades', icon: <Apartment sx={colorHover} />, link: '/comunidades', role: 2, count: stats.comunidades },
     { name: 'Edificios', icon: <Business sx={colorHover} />, link: '/edificios', role: 5, count: stats?.edificios },
     { name: 'Productos', icon: <ListAlt sx={colorHover} />, link: '/productos', role: 1, count: stats?.products },
@@ -60,7 +60,7 @@ const DashboardPage = () => {
 
   const filteredSections = sections.filter((section) => section.role <= role);
 
-  const data = sections.filter((section) => section.count >= 1);
+  const data = sections.filter((section) => (section.count ?? 0) >= 1);
 
   return (
     <PageContainer>

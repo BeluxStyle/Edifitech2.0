@@ -13,7 +13,7 @@ export default function EdificioPage() {
 
   
   const params = useParams();
-  const id = params.id as string;
+  const id = params?.id as string;
 
   const { edificio, loading, error, refetch } = useEdificio(id)
 

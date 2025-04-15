@@ -52,7 +52,7 @@ export default function CategoriesTable() {
       result.push({ ...category, isCategory: true });
 
       if (expandedCategories[category.id]) {
-        category.subcategorias.forEach((sub) => {
+        (category.subcategorias ?? []).forEach((sub) => {
           result.push({
             ...sub,
             id: `${sub.id}`, // Para que no choque con IDs de categorías
@@ -104,7 +104,7 @@ export default function CategoriesTable() {
   };
 
   const handleChangeSub = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewSubCategory({ ...newSubCategory, [e.target.name]: e.target.value, categoriaId:selectedCategory.id });
+    setNewSubCategory({ ...newSubCategory, [e.target.name]: e.target.value, categoriaId: selectedCategory?.id || '' });
   };
 
   const handleProcessRowUpdateError = React.useCallback((error: Error) => {

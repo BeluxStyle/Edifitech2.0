@@ -3,7 +3,7 @@ import CreateManualModal from "@/components/CreateManualModal";
 import CsvImporter from "@/components/CsvImporter";
 import PageContainer from '@/components/PageContainer';
 import SearchbarTools from "@/components/SearchbarTools";
-import { toast, useManualHandlers, useManuals, useProducts } from "@edifitech-graphql/index";
+import { Manual, toast, useManualHandlers, useManuals, useProducts } from "@edifitech-graphql/index";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FileOpenIcon from '@mui/icons-material/FileOpen';
 import { Alert, Autocomplete, Box, Button, Chip, DialogActions, IconButton, Modal, TextField, Tooltip, Typography } from "@mui/material";
@@ -63,6 +63,15 @@ export default function ManualsTable() {
         console.error("Error al procesar la actualización de fila:", error);
     }, []);
 
+    const handleCreateManual = async (manualData: any) => {
+        console.log(manualData)
+        handleCreate(manualData, {
+            onSuccess() {
+                
+            },
+        })
+    }
+
 
     const handleEditCell = async (params: any) => {
 
@@ -74,7 +83,6 @@ export default function ManualsTable() {
         }
         // Actualizar el manual con los nuevos datos
         handleUpdate(manual)
-        refetch();
 
         return params;
     };
@@ -150,7 +158,6 @@ export default function ManualsTable() {
                                     renderTags={(value, getTagProps) =>
                                         value.map((product, index) => (
                                             <Chip
-                                                key={product.id}
                                                 label={`${product.name} - ${product.descripcion}`}
                                                 {...getTagProps({ index })}
                                             />
@@ -249,8 +256,7 @@ export default function ManualsTable() {
                 <CreateManualModal
                     open={openModal}
                     onClose={() => setOpenModal(false)}
-                    onCreate={() => 
-                        handleCreate}
+                    onCreate={handleCreateManual}
                     products={products}
                 />
                 <Modal

@@ -14,11 +14,12 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import ContactosModal from "./ContactosModal";
 
-import { toast, useCategories, useCommentHandlers, useContactoHandlers, useElementoHandlers, useInstalacionHandlers, useProducts } from "@edifitech-graphql/index";
+import { Instalacion, Manual, Product, toast, useCategories, useCommentHandlers, useContactoHandlers, useElementoHandlers, useInstalacionHandlers, useProducts } from "@edifitech-graphql/index";
 import { useRouter } from "next/navigation"; // Correcto para App Router
 moment().locale('es');
 
 import CommentsList from "./CommentList";
+import ManualsModal from "./ManualsModal";
 
 
 
@@ -56,6 +57,7 @@ export default function DetalleEdificio({ edificio }) {
 
     const [tabIndex, setTabIndex] = useState(0);
     const [manuals, setManuals] = useState([]);
+    const [product, setProduct] = useState();
     const [modalManuals, setModalManuals] = useState(false);
     const [modalComment, setModalComment] = useState(false);
     const [modalContactos, setModalContactos] = useState(false);
@@ -63,8 +65,8 @@ export default function DetalleEdificio({ edificio }) {
     const [newComment, setNewComment] = useState("");
     const [newInstalacion, setNewInstalacion] = useState({ tipo: "", descripcion: "", categoryId: "", edificioId: edificio.id });
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedProducts, setSelectedProducts] = useState([]);
-    const [selectedInstalacion, setSelectedInstalacion] = useState(null);
+    const [selectedProducts, setSelectedProducts] = useState<Array<{ id: string; quantity: number; instalacionId: string, name: string, descripcion: string }>>([]);
+    const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null);
     const pageSize = 10;
 
 
@@ -128,7 +130,7 @@ export default function DetalleEdificio({ edificio }) {
     };
 
     useEffect(() => {
-        setFilters({ ...filters, categoryId: selectedInstalacion?.category?.id })
+        setFilters({ ...filters, categoryId: selectedInstalacion?.category?.id || '' })
     }, [selectedInstalacion]);
 
     const handleSelectProduct = (producto) => {
@@ -137,7 +139,7 @@ export default function DetalleEdificio({ edificio }) {
             if (exists) {
                 return prev.filter(p => p.id !== producto.id);
             }
-            return [...prev, { ...producto, quantity: 1, instalacionId: selectedInstalacion.id }];
+            return [...prev, { ...producto, quantity: 1, instalacionId: selectedInstalacion?.id }];
         });
     };
 
@@ -156,8 +158,9 @@ export default function DetalleEdificio({ edificio }) {
     };
 
 
-    const handleShowManuals = (manuales) => {
-        setManuals(manuales);
+    const handleShowManuals = (product) => {
+        setManuals(product.manuals)
+        setProduct(product);
         setModalManuals(true);
     };
 
@@ -167,7 +170,7 @@ export default function DetalleEdificio({ edificio }) {
     };
 
     const handleAddElements = async () => {
-            if (!selectedInstalacion.id || selectedProducts.length === 0) {
+            if (!selectedInstalacion?.id || selectedProducts.length === 0) {
                 toast("Debe seleccionar una instalación y al menos un producto.", "error");
                 return;
             }
@@ -349,14 +352,14 @@ export default function DetalleEdificio({ edificio }) {
                                     <TableBody>
                                         {edificio.instalaciones[tabIndex].elementos.map((row) => (
                                             <TableRow key={row.id}>
-                                                <TableCell>{ImageWithTooltip({ src: row.producto.image?.url || "/images/photo.png" })}</TableCell>
-                                                <TableCell>{row.producto.name}</TableCell>
+                                                <TableCell>{ImageWithTooltip({ src: row.producto?.image?.url || "/images/photo.png" })}</TableCell>
+                                                <TableCell>{row.producto?.name}</TableCell>
                                                 <TableCell>{row.producto?.subcategory?.name}</TableCell>
-                                                <TableCell>{row.producto.brand?.name}</TableCell>
-                                                <TableCell>{row.producto.descripcion}</TableCell>
+                                                <TableCell>{row.producto?.brand?.name}</TableCell>
+                                                <TableCell>{row.producto?.descripcion}</TableCell>
                                                 <TableCell align="center">
-                                                    <IconButton size="small" onClick={() => handleShowManuals(row.producto.manuals)}>
-                                                        <Badge badgeContent={row.producto.manuals.length} color="primary">
+                                                    <IconButton size="small" onClick={() => handleShowManuals(row.producto)}>
+                                                        <Badge badgeContent={row.producto?.manuals.length} color="primary">
                                                             <Description />
                                                         </Badge>
                                                     </IconButton>
@@ -391,21 +394,12 @@ export default function DetalleEdificio({ edificio }) {
                     <Button variant="outlined" sx={{ mt: 2 }} onClick={handleAddComment}>Enviar</Button>
                 </Box>
             </Modal>
-            <Modal open={Boolean(modalManuals)} onClose={() => setModalManuals(null)}>
-                <Box sx={{ p: 3, backgroundColor: "white", width: 500, margin: "auto", mt: 10 }}>
-                    <Typography variant="h6">Manuales</Typography>
-                    {modalManuals && manuals.length > 0 ? (
-                        manuals.map((manual, index) => (
-                            <Typography key={index} sx={{ mt: 1 }}>
-                                <a href={manual.documento.url} target="_blank" rel="noopener noreferrer">{manual.name}</a>
-                            </Typography>
-                        ))
-                    ) : (
-                        <Typography sx={{ mt: 2 }}>No hay manuales disponibles.</Typography>
-                    )}
-                    <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setModalManuals(null)}>Cerrar</Button>
-                </Box>
-            </Modal>
+            <ManualsModal
+                modalOpen={modalManuals}
+                setModalOpen={setModalManuals}
+                product={product}
+                manuals={manuals}
+            />
             {/* Modal para agregar elemento */}
             <Modal open={modalElement} onClose={() => setModalElement(false)}>
                 <Box sx={{ p: 3, backgroundColor: "white", width: 800, margin: "auto", mt: 10 }}>

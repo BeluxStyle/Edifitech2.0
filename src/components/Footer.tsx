@@ -27,17 +27,17 @@ function transformarTexto(texto: string) {
     .replace(/\s+/g, '_');
 }
 
-const ColorLevel = (role: Rol) => {
-  if (1 >= role?.level) {
+const ColorLevel = (level) => {
+  if (1 >= level) {
     return 'primary';
   }
-  if (2 >= role?.level) {
+  if (2 >= level) {
     return 'info';
   }
-  if (5 >= role?.level) {
+  if (5 >= level) {
     return 'secondary';
   }
-  if (99 >= role?.level) {
+  if (99 >= level) {
     return 'warning';
   } else {
     return 'primary';
@@ -51,7 +51,7 @@ const Footer: React.FC = () => {
   const router = useRouter();
   const theme = useTheme();
 
-  const bgColor = ColorLevel(user?.role) || 'primary';
+  const bgColor = ColorLevel(user?.role?.level) || 'primary';
 
   const handleClick = (text: string) => {
     const route = transformarTexto(text).toLowerCase();

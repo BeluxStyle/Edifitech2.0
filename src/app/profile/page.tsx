@@ -32,7 +32,6 @@ export default function ProfilePage() {
     const [companyEditMode, setCompanyEditMode] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [user, setUser] = useState(null);
     const [Cname, setCname] = useState('');
     const [Cphone, setCphone] = useState('');
     const [Ccif, setCcif] = useState('');
@@ -46,14 +45,15 @@ export default function ProfilePage() {
     const { me, error, loading } = useMe()
     const { handleUpdate, handlePassword } = useUserHandlers()
     const { handleUpdate: handleUpdateCo, handleRemoveUser } = useCompanyHandlers()
+    const [user, setUser] = useState(me);
 
 
     // Función para actualizar los datos del usuario
     const handleUpdateUser = async () => {
-        const updateUser:User = {
+        const updateUser = {
             ...user,
-            name: name || user?.name,
-            email: email || user?.email,
+            name: name || user.name,
+            email: email || user.email,
         }
         handleUpdate(updateUser)
         setEditMode(false); // Salir del modo de edición

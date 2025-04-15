@@ -29,7 +29,7 @@ export default function CompaniesTable() {
 
   // Estado para el modal de detalles
   const [openDetailsModal, setOpenDetailsModal] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<Company>(null); // Empresa seleccionada
+  const [selectedCompany, setSelectedCompany] = useState<Company>(); // Empresa seleccionada
   const [isMounted, setIsMounted] = useState(true);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function CompaniesTable() {
   // Función para cerrar el modal
   const handleCloseDetailsModal = () => {
     setOpenDetailsModal(false);
-    setSelectedCompany(null);
+    setSelectedCompany(undefined);
   };
 
   const handleCloseSnackbar = () => setSnackbar(null);

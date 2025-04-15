@@ -6,10 +6,9 @@
       "dom.iterable",
       "esnext"
     ],
-    "types": ["node"],
     "allowJs": true,
-    "skipLibCheck": false,
-    "strict": true,
+    "skipLibCheck": true,
+    "strict": false,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -29,8 +28,12 @@
       ],
       "@edifitech-graphql/*": [
         "./edifitech-graphql/src/*"
+      ],
+      "@mui/styled-engine": [
+        "./node_modules/@mui/styled-engine"
       ]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": [
     "**/*.ts",

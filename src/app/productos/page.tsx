@@ -4,7 +4,7 @@ import { EdifitechLoading } from "@/components/CustomIcons";
 import FilterModal from '@/components/FilterModal';
 import PageContainer from '@/components/PageContainer';
 import SearchbarTools from "@/components/SearchbarTools";
-import { toast, useBrands, useCategories, useImageHandlers, useImages, useProductHandlers, useProducts, useSubcategories } from "@edifitech-graphql/index";
+import { Manual, toast, useBrands, useCategories, useImageHandlers, useImages, useProductHandlers, useProducts, useSubcategories } from "@edifitech-graphql/index";
 import { Description } from '@mui/icons-material';
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -21,12 +21,14 @@ import { useSession } from 'next-auth/react';
 import Image from "next/image";
 import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from "react";
+import ManualsModal from "@/components/ManualsModal";
 moment().locale('es');
 
 
 export default function ProductosTable() {
 
   const [manuals, setManuals] = useState([]);
+  const [product, setProduct] = useState();
   const [modalManuals, setModalManuals] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -64,7 +66,7 @@ export default function ProductosTable() {
   const [role, setRole] = useState(0);
   useEffect(() => {
     if (session) {
-      setRole(session.user?.role?.level);
+      setRole(session.user?.role?.level ?? 0);
     }
   }, [session, role]);
 
@@ -75,7 +77,7 @@ export default function ProductosTable() {
   const [newProducto, setNewProducto] = useState<{
     ref: string;
     ean: string;
-    price: string | number; // Permitir número o cadena
+    price: number; // Solo permitir número
     descripcion: string;
     imageUrl: string;
     brandId: string;
@@ -83,7 +85,7 @@ export default function ProductosTable() {
   }>({
     ref: "",
     ean: "",
-    price: "", // Inicialmente una cadena
+    price: 0, // Inicialmente cero
     descripcion: "",
     imageUrl: "",
     brandId: "",
@@ -199,7 +201,7 @@ export default function ProductosTable() {
       }
 
       // Actualiza el estado con el valor numérico o NaN
-      setNewProducto((prev) => ({ ...prev, [name]: priceValue }));
+      setNewProducto((prev) => ({ ...prev, [name]: isNaN(priceValue) ? 0 : priceValue }));
     } else {
       setNewProducto((prev) => ({ ...prev, [name]: value }));
     }
@@ -293,8 +295,9 @@ export default function ProductosTable() {
       </Dialog>
     );
   };
-  const handleShowManuals = (manuales) => {
-    setManuals(manuales);
+  const handleShowManuals = (product) => {
+    setProduct(product)
+    setManuals(product.manuals);
     setModalManuals(true);
   };
 
@@ -381,7 +384,7 @@ export default function ProductosTable() {
       maxWidth: 80,
       flex: 1,
       renderCell: (params) => <>
-        <IconButton size="small" color={params.row.manuals.length ? "primary" : "default"} onClick={() => handleShowManuals(params.row.manuals)}>
+        <IconButton size="small" color={params.row.manuals.length ? "primary" : "default"} onClick={() => handleShowManuals(params.row)}>
           <Badge badgeContent={params.row.manuals.length} color="primary">
             <Description />
           </Badge>
@@ -673,7 +676,7 @@ export default function ProductosTable() {
                       ref: '',
                       ean: '',
                       descripcion: '',
-                      price: '',
+                      price: 0,
                       imageUrl: '',
                       brandId: '',
                       subcategoryId: '',
@@ -737,21 +740,12 @@ export default function ProductosTable() {
             />
           </Box>
         </Modal>
-        <Modal open={Boolean(modalManuals)} onClose={() => setModalManuals(null)}>
-          <Box sx={{ p: 3, backgroundColor: "white", width: 500, margin: "auto", mt: 10 }}>
-            <Typography variant="h6">Manuales</Typography>
-            {modalManuals && manuals.length > 0 ? (
-              manuals.map((manual, index) => (
-                <Typography key={index} sx={{ mt: 1 }}>
-                  <a href={manual.documento.url} target="_blank" rel="noopener noreferrer">{manual.name}</a>
-                </Typography>
-              ))
-            ) : (
-              <Typography sx={{ mt: 2 }}>No hay manuales disponibles.</Typography>
-            )}
-            <Button variant="outlined" sx={{ mt: 2 }} onClick={() => setModalManuals(null)}>Cerrar</Button>
-          </Box>
-        </Modal>
+        <ManualsModal
+                modalOpen={modalManuals}
+                setModalOpen={setModalManuals}
+                product={product}
+                manuals={manuals}
+            />
         <FilterModal
           open={openFilterModal}
           onClose={() => setOpenFilterModal(false)}

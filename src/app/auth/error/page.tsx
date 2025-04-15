@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 
 export default function ErrorPage() {
   const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+  const error = searchParams?.get('error');
 
   const getErrorMessage = (errorCode: string | null) => {
     switch (errorCode) {
@@ -20,7 +20,7 @@ export default function ErrorPage() {
   return (
     <div>
       <h1>Error de autenticación</h1>
-      <p>{getErrorMessage(error)}</p>
+      <p>{getErrorMessage(error || null)}</p>
       <a href="/auth/login">Volver al inicio de sesión</a>
     </div>
   );

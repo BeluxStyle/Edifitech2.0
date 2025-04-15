@@ -1,9 +1,8 @@
 'use client';
 import PageContainer from '@/components/PageContainer';
 import SearchbarTools from '@/components/SearchbarTools';
-import { CREATE_COMUNIDAD, CREATE_EDIFICIO, DELETE_COMUNIDAD, DELETE_EDIFICIO, GET_COMUNIDADES, GET_EDIFICIOS, UPDATE_COMUNIDAD, UPDATE_EDIFICIO } from "@/graphql/queries";
 import { Comunidad, Edificio } from '@/lib/types';
-import { useMutation, useQuery } from "@apollo/client";
+import { toast, useComunidades, useComunidadHandlers, useEdificioHandlers, useEdificios } from '@edifitech-graphql/index';
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import BusinessIcon from "@mui/icons-material/Business";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -11,7 +10,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HomeIcon from "@mui/icons-material/Home";
 import RemoveRedEyeIcon from '@mui/icons-material/RemoveRedEye';
-import { Alert, Box, Button, IconButton, MenuItem, Modal, Select, Snackbar, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, IconButton, MenuItem, Modal, Select, TextField, Typography } from "@mui/material";
 import { DataGrid, GridColDef, GridRowEditStopReasons, GridToolbarContainer, GridToolbarExport } from "@mui/x-data-grid";
 import { esES } from '@mui/x-data-grid/locales';
 import moment from 'moment';
@@ -20,7 +19,6 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from "next/navigation"; // Correcto para App Router
 import * as React from 'react';
 import { useEffect, useMemo, useState } from "react";
-import { toast, useComunidades, useEdificios, useComunidadHandlers, useEdificioHandlers, ComunidadInput } from '@edifitech-graphql/index';
 moment().locale('es');
 
 export default function ComunidadesTable() {
@@ -35,7 +33,7 @@ export default function ComunidadesTable() {
 
 
     const [openModal, setOpenModal] = useState(false);
-    const [newComunidad, setNewComunidad] = useState({ name: "", direccion: "", cp: "", comunidadId: "" });
+    const [newComunidad, setNewComunidad] = useState<{ name: string, direccion: string, cp: string, comunidadId?: string }>({ name: "", direccion: "", cp: "", comunidadId: "" });
     const [typeCreate, setTypeCreate] = useState("comunidade")
     const [searchTerm, setSearchTerm] = useState(''); // Estado para el texto de búsqueda
     const { data: session } = useSession();

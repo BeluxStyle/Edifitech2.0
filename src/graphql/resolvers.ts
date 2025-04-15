@@ -42,12 +42,6 @@ export const resolvers = {
         : parent.name; // Si no tiene brand, usa solo la ref
     }
   },
-  Subscription: {
-    notificationReceived: {
-      subscribe: (_: any, { userId }: { userId: string }) =>
-        pubsub.asyncIterator(`NOTIFICATION_${userId}`),
-    },
-  },
   Query: {
 
     // Queries existentes
@@ -495,8 +489,17 @@ export const resolvers = {
     importManuales: async (_, { data }) => {
       try {
         // Prepare an array for createMany operation
-        const manualDataForCreateMany = [];
-        const relationPromises = [];
+        
+        const relationPromises: Promise<{ manualName: string; productoIds: string[]; }>[] = [];
+
+        // Define the type for manual data
+        interface ManualCreateData {
+          name: string;
+          description: string;
+          documentoId: string;
+        }
+        
+        const manualDataForCreateMany: ManualCreateData[] = [];
 
         // Process each item in the input data
         for (const item of data) {
@@ -592,7 +595,7 @@ export const resolvers = {
       const userRole = await prisma.rol.findUnique({
         where: { name: 'user' },
       });
-      let hashedPassword = null;
+      let hashedPassword = "";
 
       if (password) {
         hashedPassword = await bcrypt.hash(password, 10);
@@ -632,6 +635,7 @@ export const resolvers = {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       const user = await prisma.user.findUnique({ where: { id } });
       if (!user) throw new Error("Usuario no encontrado");
+      if (!user.password) throw new Error("Usuario sin contraseña");
       const valid = await bcrypt.compare(password, user.password);
       return valid
     }
@@ -929,11 +933,11 @@ export const resolvers = {
     },
     updateComunidad: async (
       _parent: unknown,
-      { id, input }: { id: string, input: ComunidadInput },
+      { id, input }: { id: string, input: any },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
-      return prisma.comunidad.update({ where: { id }, data: input });
+      return prisma.comunidad.update({ where: { id }, data: input});
     },
     deleteComunidad: async (
       _parent: unknown,
@@ -955,7 +959,7 @@ export const resolvers = {
     },
     updateEdificio: async (
       _parent: unknown,
-      { id, input }: { id: string, input: EdificioInput },
+      { id, input }: { id: string, input: any },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
@@ -1023,7 +1027,7 @@ export const resolvers = {
     },
     updateElemento: async (
       _parent: unknown,
-      { id, input }: { id: string, input: ElementoInput },
+      { id, input }: { id: string, input: any },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
@@ -1049,7 +1053,7 @@ export const resolvers = {
     },
     updateProducto: async (
       _parent: unknown,
-      { id, input }: { id: string, input: ProductoInput },
+      { id, input }: { id: string, input: any },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
@@ -1378,6 +1382,9 @@ export const resolvers = {
         }
 
         // 3. Crear un token JWT para la app móvil
+        if (!process.env.NEXTAUTH_SECRET) {
+          throw new Error('NEXTAUTH_SECRET is not defined');
+        }
         const token = jwt.sign(
           {
             id: user.id,
@@ -1385,7 +1392,7 @@ export const resolvers = {
             name: user.name,
             role: user.role?.name || 'user',
           },
-          process.env.NEXTAUTH_SECRET, // Usar el mismo secret que NextAuth
+          process.env.NEXTAUTH_SECRET as string,
           { expiresIn: '30d' } // Token de larga duración para móvil
         );
 
