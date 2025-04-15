@@ -12,17 +12,18 @@ interface MyContext {
 
 let apolloServer: ApolloServer<MyContext> | null = null;
 
-
 export async function getApolloServer(): Promise<ApolloServer<MyContext>> {
+  console.log('getApolloServer called');
   if (!apolloServer) {
+    console.log('Creating a new ApolloServer instance');
     apolloServer = new ApolloServer<MyContext>({
       typeDefs,
       resolvers,
     });
+    console.log('Starting ApolloServer');
+    await apolloServer.start();
+    console.log('ApolloServer started');
   }
-
-  await apolloServer.start();
-
 
   return apolloServer;
 }
