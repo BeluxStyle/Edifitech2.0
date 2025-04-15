@@ -21,9 +21,11 @@ import { ConfirmDialogProvider } from '@/providers/ConfirmDialogProvider';
 
 
 
+
 export default async function RootLayout(props: { children: React.ReactNode }) {
 
   const session = await getServerSession(authOptions);
+
  
  
 
@@ -42,9 +44,9 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
                       <BreadcrumbsNav />
                       {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
                       <CssBaseline />
-
-                      {props.children}
-
+                      
+                      {props.children}ç
+                      
                       <CookieConsent />
                     </ConfirmDialogProvider>
                   </PageContainer>

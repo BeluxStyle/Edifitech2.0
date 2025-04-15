@@ -69,6 +69,7 @@ const DashboardPage = () => {
           <Box component="span" sx={{ fontWeight: "bold", color: "primary.main" }}>
             {session?.user?.name}
           </Box>
+          
         </Typography>
 
         <Grid container spacing={1}>

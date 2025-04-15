@@ -1,14 +1,10 @@
-import bcrypt from "bcrypt";
-import { PrismaClient } from "@prisma/client";
-import { Session } from "next-auth";
-import { ComunidadInput, ContactoInput, EdificioInput, ElementoInput, InstalacionInput, ManualInput, ManualUpdateInput, ProductoInput, DocumentInput } from "@/lib/types";
-import { compare } from "bcrypt"; // Para comparar contraseñas
-import jwt from "jsonwebtoken"; // Para generar tokens JWT
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../app/api/auth/[...nextauth]/authOptions';
-import { parse } from 'cookie';
-import { NextResponse, NextRequest } from "next/server";
+import { ComunidadInput, ContactoInput, DocumentInput, EdificioInput, ElementoInput, InstalacionInput, ProductoInput } from "@/lib/types";
 import { CommentInput, ReactionInput, UserNotificationCreateInput } from "@edifitech-graphql/types";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken"; // Para generar tokens JWT
+import { Session } from "next-auth";
+
 
 
 
@@ -667,7 +663,7 @@ export const resolvers = {
     ) => {
       if (!context.session?.user) throw new Error("No autenticado");
 
-      const notification = prisma.userNotification.create({
+      const notification = await prisma.userNotification.create({
         data: {
           userId,
           title,
@@ -675,8 +671,6 @@ export const resolvers = {
           link,
         },
       });
-
-      
 
       return notification
     },

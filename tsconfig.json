@@ -7,8 +7,8 @@
       "esnext"
     ],
     "allowJs": true,
-    "skipLibCheck": true,
-    "strict": false,
+    "skipLibCheck": false,
+    "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -26,10 +26,7 @@
       "@/*": [
         "./src/*"
       ],
-      "@mui/styled-engine": [
-        "./node_modules/@mui/styled-engine"
-      ],
-      "@edifitech-graphql/*" : [
+      "@edifitech-graphql/*": [
         "./edifitech-graphql/src/*"
       ]
     }
