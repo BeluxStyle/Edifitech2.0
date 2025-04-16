@@ -489,7 +489,7 @@ export const resolvers = {
     importManuales: async (_, { data }) => {
       try {
         // Prepare an array for createMany operation
-        
+
         const relationPromises: Promise<{ manualName: string; productoIds: string[]; }>[] = [];
 
         // Define the type for manual data
@@ -498,7 +498,7 @@ export const resolvers = {
           description: string;
           documentoId: string;
         }
-        
+
         const manualDataForCreateMany: ManualCreateData[] = [];
 
         // Process each item in the input data
@@ -937,7 +937,7 @@ export const resolvers = {
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
-      return prisma.comunidad.update({ where: { id }, data: input});
+      return prisma.comunidad.update({ where: { id }, data: input });
     },
     deleteComunidad: async (
       _parent: unknown,
@@ -1131,7 +1131,14 @@ export const resolvers = {
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
-      return prisma.image.create({ data: input });
+      const { url } = input;
+
+      // Intentamos buscar una imagen existente
+      const existing = await prisma.image.findUnique({ where: { url } });
+      if (existing) return existing;
+
+      // Si no existe, la creamos
+      return prisma.image.create({ data: { url } });
     },
     updateImage: async (
       _parent: unknown,

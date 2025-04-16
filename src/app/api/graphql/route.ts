@@ -1,17 +1,13 @@
 // src/app/api/graphql/route.ts
-
 import { startServerAndCreateNextHandler } from "@as-integrations/next";
-import { getApolloServer } from "@/lib/apolloServer";
-import { getContextFromRequest } from "@/lib/graphql/getContextFromRequest";
+import { apolloServer } from "@/lib/apolloServer";
 import { NextRequest } from "next/server";
+import { getContextFromRequest } from "@/lib/graphql/getContextFromRequest";
 
-async function internalHandler(request: NextRequest) {
-  const apolloServer = await getApolloServer();
+// Crear un handler que use el servidor ya iniciado
+const handler = startServerAndCreateNextHandler(apolloServer, {
+  context: async (req: NextRequest) => getContextFromRequest(req)
+});
 
-  return startServerAndCreateNextHandler(apolloServer, {
-    context: () => getContextFromRequest(request),
-  })(request);
-}
-
-export const GET = internalHandler;
-export const POST = internalHandler;
+export const GET = handler;
+export const POST = handler;
