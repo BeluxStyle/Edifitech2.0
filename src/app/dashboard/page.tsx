@@ -2,7 +2,7 @@
 
 import PageContainer from '@/components/PageContainer';
 import { useCounts } from '@edifitech-graphql/index';
-import { AccountCircle, Apartment, AssignmentLate, BrandingWatermark, Business, Category, Collections, Construction, ContactPhone, Description, ListAlt, Loyalty, People, Plagiarism, Store, SupervisedUserCircle } from '@mui/icons-material';
+import { AccountCircle, Apartment,AssignmentLate, BrandingWatermark, Business, Category, Collections, Construction, ContactPhone, Description, ListAlt, Loyalty, People, Plagiarism, Store, SupervisedUserCircle, Settings } from '@mui/icons-material';
 import { Box, Card, Typography } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import { useSession } from 'next-auth/react';
@@ -41,7 +41,7 @@ const DashboardPage = () => {
 
   const sections = [
     { name: 'Perfil', icon: <AccountCircle sx={colorHover} />, link: '/profile', role: 0 },
-    { name: 'Avisos', icon: <AssignmentLate sx={colorHover} />, link: '/avisos', role: 2 },
+    { name: 'Utilidades', icon: <Settings sx={colorHover} />, link: '/utilidades', role: 2 },
     { name: 'Comunidades', icon: <Apartment sx={colorHover} />, link: '/comunidades', role: 2, count: stats.comunidades },
     { name: 'Edificios', icon: <Business sx={colorHover} />, link: '/edificios', role: 5, count: stats?.edificios },
     { name: 'Productos', icon: <ListAlt sx={colorHover} />, link: '/productos', role: 1, count: stats?.products },
