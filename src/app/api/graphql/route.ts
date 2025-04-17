@@ -1,23 +1,35 @@
-import { startServerAndCreateNextHandler } from '@as-integrations/next';
-import { getApolloServer } from '@/lib/apolloServer';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/authOptions';
-import { prisma } from '@/lib/prisma';
+// src/app/api/graphql/route.ts
 
-// Crear instancia de Apollo Server
+/*import { startServerAndCreateNextHandler } from "@as-integrations/next";
+import { getApolloServer } from "@/lib/apolloServer";
+import { getContextFromRequest } from "@/lib/graphql/getContextFromRequest";
+import { NextRequest } from "next/server";
+
+const apolloServer = await getApolloServer();
+
+function internalHandler(request: NextRequest) {
+  return startServerAndCreateNextHandler(apolloServer, {
+    context: () => getContextFromRequest(request),
+  })(request);
+}
+
+
+export const GET = internalHandler;
+export const POST = internalHandler;
+*/
+// route.ts
+import { startServerAndCreateNextHandler } from '@as-integrations/next';
+import { getApolloServer } from '@/lib/apolloServer'; // Importar la función singleton
+import { getContextFromRequest } from '@/lib/graphql/getContextFromRequest';
+
+// Obtener la instancia única de Apollo Server
 const apolloServer = getApolloServer();
 
-// Definir el handler para GraphQL
+// Crear el handler para GraphQL usando startServerAndCreateNextHandler
 const handler = startServerAndCreateNextHandler(apolloServer, {
   context: async (req: any) => {
-    // Obtener la sesión del usuario
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      throw new Error('Authentication required');
-    }
-
-    // Devolver el contexto con Prisma y la sesión
-    return { prisma, session };
+    // Generar el contexto usando getContextFromRequest
+    return getContextFromRequest(req);
   },
 });
 

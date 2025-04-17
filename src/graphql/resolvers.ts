@@ -4,9 +4,8 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"; // Para generar tokens JWT
 import { Session } from "next-auth";
-
-
-
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../app/api/auth/[...nextauth]/authOptions';
 
 
 
@@ -203,7 +202,11 @@ export const resolvers = {
     },
     countComunidades: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
-      return prisma.comunidad.count();
+      const countedificios = await prisma.edificio.count({where: { comunidad: null}})
+      const countcomunidades = await prisma.comunidad.count();
+      const total = (countcomunidades + countedificios)
+
+      return total
     },
     getEdificio: async (_parent: unknown, { id }: { id: string }, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("no autenticado");
@@ -1388,6 +1391,10 @@ export const resolvers = {
           throw new Error('Credenciales inválidas');
         }
 
+
+
+
+
         // 3. Crear un token JWT para la app móvil
         if (!process.env.NEXTAUTH_SECRET) {
           throw new Error('NEXTAUTH_SECRET is not defined');
@@ -1404,7 +1411,7 @@ export const resolvers = {
         );
 
         // 4. Actualizar lastLogin e isOnline
-        await prisma.user.update({
+        const result = await prisma.user.update({
           where: { id: user.id },
           data: { lastLogin: new Date(), isOnline: true },
         });

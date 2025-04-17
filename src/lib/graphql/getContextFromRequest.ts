@@ -1,5 +1,4 @@
 // src/lib/graphql/getContextFromRequest.ts
-
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
@@ -36,7 +35,7 @@ export async function getContextFromRequest(request: NextRequest): Promise<MyCon
             name: mobileUser.name,
             email: mobileUser.email,
             image: mobileUser.image,
-            role: mobileUser.role.name,
+            role: mobileUser.role,
           },
           expires: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         };

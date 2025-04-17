@@ -1,20 +1,24 @@
+// apolloServer.ts
 import { ApolloServer } from '@apollo/server';
 import { typeDefs } from '@/graphql/schema';
 import { resolvers } from '@/graphql/resolvers';
-import { Session } from 'next-auth';
 
 interface MyContext {
-  session: Session
+  prisma: any; // Puedes reemplazar `any` con el tipo específico de Prisma
+  session: any; // Puedes reemplazar `any` con el tipo específico de la sesión
 }
 
-let apolloServer: ApolloServer<MyContext>;
+// Variable para almacenar la instancia única de Apollo Server
+let apolloServerInstance: ApolloServer<MyContext> | null = null;
 
-export function getApolloServer() {
-  if (!apolloServer) {
-    apolloServer = new ApolloServer<MyContext>({
+// Función para obtener una instancia única de Apollo Server
+export function getApolloServer(): ApolloServer<MyContext> {
+  if (!apolloServerInstance) {
+    console.log("Creando nueva instancia de Apollo Server...");
+    apolloServerInstance = new ApolloServer<MyContext>({
       typeDefs,
       resolvers,
     });
   }
-  return apolloServer;
+  return apolloServerInstance;
 }

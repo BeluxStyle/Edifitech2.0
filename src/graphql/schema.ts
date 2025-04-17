@@ -534,8 +534,6 @@ type ImportResponse {
 type LoginResponse {
   user: User
   token: String
-  success: Boolean!
-  message: String!
 }
 
 type ImportResponseManual {
