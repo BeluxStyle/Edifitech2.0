@@ -2,7 +2,7 @@
 import PageContainer from '@/components/PageContainer';
 import SearchbarTools from '@/components/SearchbarTools';
 import { Comunidad, Edificio } from '@/lib/types';
-import { toast, useComunidades, useComunidadHandlers, useEdificioHandlers, useEdificios } from '@edifitech-graphql/index';
+import { toast, useComunidades, useComunidadHandlers, useEdificioHandlers, useEdificios, getCity } from '@edifitech-graphql/index';
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import BusinessIcon from "@mui/icons-material/Business";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -19,6 +19,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from "next/navigation"; // Correcto para App Router
 import * as React from 'react';
 import { useEffect, useMemo, useState } from "react";
+import CityNameComponent from '@/components/cityComponent';
 moment().locale('es');
 
 export default function ComunidadesTable() {
@@ -160,6 +161,7 @@ export default function ComunidadesTable() {
         }
 
         else if (typeCreate == "edificio") {
+            if (newComunidad.comunidadId === "" ) delete newComunidad.comunidadId
             await handleCreateEd(
                 newComunidad, {
                 onSuccess() {
@@ -207,6 +209,7 @@ export default function ComunidadesTable() {
         { field: "name", headerName: "Name", flex: 1, editable: hasAccess },
         { field: "direccion", headerName: "Dirección", flex: 1, editable: hasAccess },
         { field: "cp", headerName: "CP", flex: 1, editable: hasAccess },
+        { field: "city", headerName: "Ciudad", flex: 1, renderCell: (params) => <CityNameComponent postalCode={params.row.cp} />},
         {
             field: "adminCompany",
             headerName: "Administrador",

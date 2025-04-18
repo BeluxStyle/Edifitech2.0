@@ -137,7 +137,7 @@ model Edificio {
   cp         String?
   adminCompany  Company?  @relation("EdificioAdminCompany", fields: [adminCompanyId], references: [id])
   adminCompanyId String?
-  comunidad  Comunidad?   @relation(fields: [comunidadId], references: [id])
+  comunidad  Comunidad?   @relation(fields: [comunidadId], references: [id], onDelete: Cascade)
   comunidadId String?
   comments Comment[] @relation("ComentarioEdificio")
   instalaciones Instalacion[] @relation("InstalacionEdificio")
