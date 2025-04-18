@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 datasource db {
