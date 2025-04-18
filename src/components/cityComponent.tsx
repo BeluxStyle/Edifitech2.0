@@ -14,6 +14,7 @@ const CityNameComponent = ({ postalCode }: { postalCode: string }) => {
           setIsLoading(true);
           setError(null);
           if (postalCode == "41701" || postalCode == "41702") setCityName('Dos Hermanas');
+          if (postalCode == "41510") setCityName('Mairena del Alcor');
           else {
             const data = await getCity(postalCode); // Asume que devuelve los lugares
             setCityName(data);
@@ -29,14 +30,14 @@ const CityNameComponent = ({ postalCode }: { postalCode: string }) => {
     }, [postalCode]);
 
     if (isLoading) {
-      return <Typography>Cargando...</Typography>;
+      return "Cargando..."
     }
 
     if (error) {
-      return <Typography>{error}</Typography>;
+      return error
     }
 
-    return <Typography>{cityName || 'Ciudad desconocida'}</Typography>;
+    return cityName || 'Ciudad desconocida'
   };
 
   export default CityNameComponent

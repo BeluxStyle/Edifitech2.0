@@ -15,6 +15,8 @@ import { useEffect, useMemo, useState } from "react";
 import CommentsList from "./CommentList";
 import ContactosModal from "./ContactosModal";
 import ManualsModal from "./ManualsModal"
+import CityNameComponent from '@/components/cityComponent';
+
 
 moment().locale('es');
 
@@ -245,7 +247,8 @@ export default function DetalleComunidad({ comunidad }) {
                         {/* Información de la comunidad */}
                         <Box display="flex" flexDirection="column" gap={1}>
                             <Typography variant="body1"><strong>Dirección:</strong> {comunidad.direccion}</Typography>
-                            <Typography variant="body1"><strong>CP:</strong> {comunidad.cp} - Sevilla</Typography>
+                            <Typography variant="body1"><strong>CP:</strong> {comunidad.cp} - <CityNameComponent postalCode={comunidad.cp} /></Typography>
+                            
                             <Typography variant="body1"><strong>Administrador:</strong> {comunidad.adminCompany?.name || "Desconocido"}</Typography>
                             <Typography variant="body1"><Button variant="outlined" startIcon={<Phone />} sx={{ mt: "auto" }} onClick={() => setModalContactos(true)}>Ver Contactos</Button>
                             </Typography>

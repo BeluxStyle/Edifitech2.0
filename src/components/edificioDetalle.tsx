@@ -20,6 +20,7 @@ moment().locale('es');
 
 import CommentsList from "./CommentList";
 import ManualsModal from "./ManualsModal";
+import CityNameComponent from '@/components/cityComponent';
 
 
 
@@ -237,7 +238,7 @@ export default function DetalleEdificio({ edificio }) {
 
                         <Box display="flex" flexDirection="column" gap={1}>
                             <Typography variant="body1"><strong>Dirección:</strong> {edificio.direccion || edificio.comunidad.direccion}</Typography>
-                            <Typography variant="body1"><strong>CP:</strong> {edificio.cp || edificio.comunidad.cp} - Sevilla</Typography>
+                            <Typography variant="body1"><strong>CP:</strong> {edificio.cp || edificio.comunidad.cp} - <CityNameComponent postalCode={edificio.cp || edificio.comunidad.cp} /></Typography>
                             <Typography variant="body1"><strong>Administrador:</strong> {edificio.adminCompany?.name || "Desconocido"}</Typography>
                             <Typography variant="body1"><Button variant="outlined" startIcon={<Phone />} sx={{ mt: "auto" }} onClick={() => setModalContactos(true)}>Ver Contactos</Button></Typography>
                         </Box>

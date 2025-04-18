@@ -6,6 +6,7 @@ import { useComunidad } from "@edifitech-graphql/index";
 import { Box, Typography } from "@mui/material";
 import { useParams } from "next/navigation";
 
+
 import DetalleComunidad from "@/components/comunidadDetalle";
 
 
