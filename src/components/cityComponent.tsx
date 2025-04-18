@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
 import { getCity } from "@edifitech-graphql/index";
-import { Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 
 
 const CityNameComponent = ({ postalCode }: { postalCode: string }) => {

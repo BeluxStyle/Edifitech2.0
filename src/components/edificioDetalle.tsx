@@ -14,13 +14,13 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import ContactosModal from "./ContactosModal";
 
-import { Instalacion, Manual, Product, toast, useCategories, useCommentHandlers, useContactoHandlers, useElementoHandlers, useInstalacionHandlers, useProducts } from "@edifitech-graphql/index";
+import { Instalacion, toast, useCategories, useCommentHandlers, useContactoHandlers, useElementoHandlers, useInstalacionHandlers, useProducts } from "@edifitech-graphql/index";
 import { useRouter } from "next/navigation"; // Correcto para App Router
 moment().locale('es');
 
+import CityNameComponent from '@/components/cityComponent';
 import CommentsList from "./CommentList";
 import ManualsModal from "./ManualsModal";
-import CityNameComponent from '@/components/cityComponent';
 
 
 
