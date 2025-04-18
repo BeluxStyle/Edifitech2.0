@@ -74,7 +74,7 @@ const DashboardPage = () => {
         </Typography>
 
         <Grid container spacing={1}>
-          {filteredSections.map((section) => (
+          git
             <Grid size={{ xs: 6, sm: 4, md: 1.5 }} key={section.name}>
               <Card onClick={() => router.push(section.link)} style={{ position: 'relative', textAlign: 'center', padding: '16px', cursor: 'pointer', minHeight: 160 }}>
                 <Typography variant="h6" style={{ marginTop: 8 }}>{section.name}</Typography>
