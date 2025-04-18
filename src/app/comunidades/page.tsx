@@ -161,7 +161,7 @@ export default function ComunidadesTable() {
         }
 
         else if (typeCreate == "edificio") {
-            if (newComunidad.comunidadId === "" ) delete newComunidad.comunidadId
+            if (newComunidad.comunidadId === "") delete newComunidad.comunidadId
             await handleCreateEd(
                 newComunidad, {
                 onSuccess() {
@@ -209,7 +209,22 @@ export default function ComunidadesTable() {
         { field: "name", headerName: "Name", flex: 1, editable: hasAccess },
         { field: "direccion", headerName: "Dirección", flex: 1, editable: hasAccess },
         { field: "cp", headerName: "CP", flex: 1, editable: hasAccess },
-        { field: "city", headerName: "Ciudad", flex: 1, renderCell: (params) => <CityNameComponent postalCode={params.row.cp} />},
+        {
+            field: "city", headerName: "Ciudad", flex: 1,
+            renderCell: (params) => (
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",  // centra verticalmente
+                        justifyContent: "left", // centra horizontalmente si es necesario
+                        height: "100%", // importante: para que ocupe toda la celda
+                        width: "100%",
+                    }}
+                >
+                    <CityNameComponent postalCode={params.row.cp} />
+                </Box>
+            )
+        },
         {
             field: "adminCompany",
             headerName: "Administrador",
