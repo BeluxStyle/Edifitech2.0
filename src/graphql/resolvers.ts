@@ -57,6 +57,13 @@ export const resolvers = {
         },
       });
     },
+    myDevices: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
+      if (!context?.session.user?.id) throw new Error("Not authenticated");
+      return prisma.userDevice.findMany({
+        where: { userId: context.session.user.id },
+        orderBy: { updatedAt: 'desc' },
+      });
+    },
     myNotifications: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       return prisma.userNotification.findMany({
@@ -202,7 +209,7 @@ export const resolvers = {
     },
     countComunidades: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
-      const countedificios = await prisma.edificio.count({where: { comunidad: null}})
+      const countedificios = await prisma.edificio.count({ where: { comunidad: null } })
       const countcomunidades = await prisma.comunidad.count();
       const total = (countcomunidades + countedificios)
 
@@ -295,6 +302,8 @@ export const resolvers = {
     },
     listProductos: async (_parent: unknown, { searchTerm, page, pageSize, categoryId, brandId }: { searchTerm: string, page: number, pageSize: number, categoryId: string, brandId: string }, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("no autenticado");
+      if (categoryId === "all") { categoryId = '' }
+      if (brandId === "all") { brandId = '' }
       const where = {
         AND: [
           ...(searchTerm
@@ -689,6 +698,61 @@ export const resolvers = {
 
 
       return notification
+    },
+    registerDevice: async (
+      _: any,
+      { input }: { input: { expoPushToken: string; os: string; deviceId?: string } },
+      context: { session: Session }
+    ) => {
+      const userId = context.session?.user?.id;
+      if (!userId) throw new Error("Not authenticated");
+
+      // Opción: evitar duplicados por deviceId
+      const existing = await prisma.userDevice.findFirst({
+        where: {
+          userId,
+          deviceId: input.deviceId ?? undefined,
+        },
+      });
+
+      if (existing) {
+        return prisma.userDevice.update({
+          where: { id: existing.id },
+          data: {
+            expoPushToken: input.expoPushToken,
+            os: input.os,
+            lastUsedAt: new Date(),
+          },
+        });
+      }
+
+      return prisma.userDevice.create({
+        data: {
+          userId,
+          expoPushToken: input.expoPushToken,
+          os: input.os,
+          deviceId: input.deviceId,
+          lastUsedAt: new Date(),
+        },
+      });
+    },
+
+    unregisterDevice: async (
+      _: any,
+      { deviceId }: { deviceId: string },
+      context: { session: Session }
+    ) => {
+      const userId = context.session?.user?.id;
+      if (!userId) throw new Error("Not authenticated");
+
+      const device = await prisma.userDevice.findFirst({
+        where: { userId, deviceId },
+      });
+
+      if (!device) throw new Error("Device not found");
+
+      await prisma.userDevice.delete({ where: { id: device.id } });
+      return true;
     },
     createRole: async (
       _parent: unknown,

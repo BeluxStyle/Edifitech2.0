@@ -39,6 +39,17 @@ type Account {
   user: User 
 }
 
+type UserDevice {
+    id: ID!
+    userId: ID!
+    expoPushToken: String!
+    os: String!
+    deviceId: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    lastUsedAt: DateTime
+  }
+
 type Rol {
   id: ID!
   name: String!
@@ -298,6 +309,7 @@ type Subscription {
 
 type Query {
   me: User
+  myDevices: [UserDevice!]!
   myNotifications: [UserNotification!]!
   listUsers: [User!]!
   countUsers: Int!
@@ -459,6 +471,9 @@ type Mutation {
   updateContacto(id: ID!, input: ContactoInput!): Contacto!
   deleteContacto(id: ID!): Boolean!
 
+  registerDevice(input: RegisterDeviceInput!): UserDevice!
+  unregisterDevice(deviceId: String!): Boolean!
+
 }
 
 input CategoryInput {
@@ -598,4 +613,10 @@ input UserNotificationCreateInput {
   body: String
   link: String
 }
+
+input RegisterDeviceInput {
+    expoPushToken: String!
+    os: String!
+    deviceId: String
+  }
 `;
