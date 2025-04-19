@@ -183,6 +183,7 @@ export const resolvers = {
           },
           edificios: {
             include: {
+              comments : true,
               instalaciones: {
                 include: {
                   elementos: {
@@ -205,7 +206,13 @@ export const resolvers = {
     },
     listComunidades: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("no autenticado");
-      return prisma.comunidad.findMany({ include: { edificios: true, adminCompany: true, instalaciones: true, contactos: true } });
+      return prisma.comunidad.findMany({ 
+        include: { 
+        edificios: true,
+        adminCompany: true, 
+        instalaciones: true, 
+        contactos: true 
+      } });
     },
     countComunidades: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
