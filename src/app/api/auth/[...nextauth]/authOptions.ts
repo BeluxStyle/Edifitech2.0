@@ -88,9 +88,6 @@ export const authOptions = {
         // Devolver el usuario encontrado o creado
         return dbUser;
       }
-    
-      // Para otros proveedores (como credenciales), devolver true
-      return true;
     },    
     async jwt({ token, user }) {
       if (user) {

@@ -366,7 +366,7 @@ type Mutation {
 
   # Operaciones CRUD para Auth
   login(email: String!, password: String!): LoginResponse!
-  loginWithGoogle(token: String!): LoginResponse!
+  googleLogin(input: GoogleLoginInput!): LoginResponse!
   logout: Boolean!
   register(name: String!, email: String!, password: String!): User!
   
@@ -549,6 +549,25 @@ type ImportResponse {
 type LoginResponse {
   user: User
   token: String
+}
+
+input GoogleLoginInput {
+  user: GoogleUserInput!
+  account: GoogleAccountInput!
+}
+
+# Datos del usuario proporcionados por Google
+input GoogleUserInput {
+  email: String!
+  name: String!
+  image: String
+}
+
+# Datos de la cuenta de Google
+input GoogleAccountInput {
+  provider: String!
+  providerAccountId: String!
+  type: String!
 }
 
 type ImportResponseManual {

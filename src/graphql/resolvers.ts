@@ -183,7 +183,7 @@ export const resolvers = {
           },
           edificios: {
             include: {
-              comments : true,
+              comments: true,
               instalaciones: {
                 include: {
                   elementos: {
@@ -206,13 +206,14 @@ export const resolvers = {
     },
     listComunidades: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("no autenticado");
-      return prisma.comunidad.findMany({ 
-        include: { 
-        edificios: true,
-        adminCompany: true, 
-        instalaciones: true, 
-        contactos: true 
-      } });
+      return prisma.comunidad.findMany({
+        include: {
+          edificios: true,
+          adminCompany: true,
+          instalaciones: true,
+          contactos: true
+        }
+      });
     },
     countComunidades: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
@@ -1461,11 +1462,6 @@ export const resolvers = {
         if (!isValid) {
           throw new Error('Credenciales inválidas');
         }
-
-
-
-
-
         // 3. Crear un token JWT para la app móvil
         if (!process.env.NEXTAUTH_SECRET) {
           throw new Error('NEXTAUTH_SECRET is not defined');
@@ -1503,6 +1499,88 @@ export const resolvers = {
       }
     }
     ,
+    googleLogin: async (_, { input }, { prisma }) => {
+      try {
+        const { user, account } = input
+        // Validar entrada
+        if (!user || !account || account.provider !== "google") {
+          throw new Error("Datos de autenticación inválidos");
+        }
+    
+        // Buscar el usuario en la base de datos
+        let dbUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+          include: { role: true },
+        });
+    
+        if (!dbUser) {
+          // Si el usuario no existe, asignarle el rol "user"
+          let defaultRole = await prisma.rol.findUnique({
+            where: { name: "user" },
+          });
+    
+          if (!defaultRole) {
+            defaultRole = await prisma.rol.create({ data: { name: "user" } });
+          }
+    
+          // Crear el nuevo usuario
+          dbUser = await prisma.user.create({
+            data: {
+              email: user.email!,
+              name: user.name!,
+              image: user.image,
+              role: { connect: { id: defaultRole.id } }, // Asignamos el rol "user"
+              accounts: {
+                create: {
+                  provider: "google",
+                  providerAccountId: account.providerAccountId,
+                  type: account.type,
+                },
+              },
+            },
+            include: { role: true }, // Incluir el rol en la respuesta
+          });
+        }
+    
+        // Verificar NEXTAUTH_SECRET
+        if (!process.env.NEXTAUTH_SECRET) {
+          throw new Error('NEXTAUTH_SECRET is not defined');
+        }
+    
+        // Crear un token JWT para la app móvil
+        const token = jwt.sign(
+          {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            role: dbUser.role?.name || 'user',
+          },
+          process.env.NEXTAUTH_SECRET as string,
+          { expiresIn: '30d' } // Token de larga duración para móvil
+        );
+    
+        // Actualizar lastLogin e isOnline
+        await prisma.user.update({
+          where: { id: dbUser.id },
+          data: { lastLogin: new Date(), isOnline: true },
+        });
+    
+        // Devolver el usuario encontrado o creado
+        return {
+          token,
+          user: {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name || '',
+            image: dbUser.image || null,
+            role: dbUser.role?.name || 'user'
+          }
+        };
+      } catch (error) {
+        console.error("Error en googleLogin:", error);
+        throw new Error(error.message || 'Error de autenticación');
+      }
+    },
     logout: async (_parent: unknown, _args: unknown, context: { session: Session }) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       // Aquí puedes implementar la lógica de cierre de sesión si es necesario
