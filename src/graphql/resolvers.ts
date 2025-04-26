@@ -6,9 +6,21 @@ import jwt from "jsonwebtoken"; // Para generar tokens JWT
 import { Session } from "next-auth";
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../app/api/auth/[...nextauth]/authOptions';
+import citiesData from '../../public/postal_codes_spain.json';
 
+const CityName = (postalCode: string): string => {
+  // Buscar en el JSON local
+  const cityEntry = citiesData.find((entry) => entry["post code"] === postalCode);
 
+  if (cityEntry && cityEntry.places.length > 0) {
+    // Devolver el nombre de la ciudad del primer lugar encontrado
+    return cityEntry.places[0]["place name"];
+  }
 
+  // Si no se encuentra la ciudad, devolver un valor por defecto
+  return 'Ciudad desconocida';
+};
+  
 
 
 const prisma = new PrismaClient();
@@ -39,6 +51,18 @@ export const resolvers = {
       return parent.comunidad
         ? `${parent.comunidad.name} - ${parent.name}`
         : parent.name; // Si no tiene brand, usa solo la ref
+    },
+    city: (parent) => {
+      return parent.cp
+        ? CityName(parent.cp)
+        : 'Desconocida'; // Si no tiene brand, usa solo la ref
+    }
+  },
+  Comunidad: {
+    city: (parent) => {
+      return parent.cp
+        ? CityName(parent.cp)
+        : 'Desconocida'; // Si no tiene brand, usa solo la ref
     }
   },
   Query: {
@@ -78,6 +102,7 @@ export const resolvers = {
           role: true,
           company: true,
           accounts: true,
+          userDevices: true,
           userSubscriptions: {
             include: { subscription: true }
           }

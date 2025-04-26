@@ -15,6 +15,7 @@ type User {
   role: Rol
   company: Company
   accounts: [Account]
+  userDevices: [UserDevice]
   comments: [Comment]
   reactions: [Reaction]
   userSubscriptions: [UserSubscription]
@@ -77,6 +78,7 @@ type Comunidad {
   name: String!
   direccion: String!
   cp: String
+  city: String
   adminCompanyId: String
   adminCompany: Company
   instalaciones: [Instalacion]
@@ -93,6 +95,7 @@ type Edificio {
   label: String
   direccion:   String
   cp: String
+  city: String
   adminCompany:  Company
   adminCompanyId: String
   comunidadId: String
