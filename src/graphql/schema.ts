@@ -382,7 +382,7 @@ type Mutation {
   importProducts(data: [ProductoInput!]!): ImportResponse!
   # Operaciones CRUD para User
   createUser(name: String, email: String!, password: String): User!
-  updateUser(id: ID!, name: String, email: String, roleId: ID): User!
+  updateUser(id: ID!, name: String, image: String, email: String, roleId: ID): User!
   deleteUser(id: ID!): Boolean!
   changePassword(id: ID!, password: String!):  User!
   checkPassword(id: ID!, password: String!): Boolean!

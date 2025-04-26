@@ -651,13 +651,13 @@ export const resolvers = {
     },
     updateUser: async (
       _parent: unknown,
-      { id, name, email, roleId }: { id: string; name: string; email: string; roleId: string },
+      { id, name, email, roleId, image }: { id: string; name: string; email: string; roleId: string; image: string },
       context: { session: Session }
     ) => {
       if (!context.session?.user?.id) throw new Error("No autenticado");
       return prisma.user.update({
         where: { id },
-        data: { name, email, role: { connect: { id: roleId } } },
+        data: { name, image, email, role: { connect: { id: roleId } } },
       });
     },
     changePassword: async (
